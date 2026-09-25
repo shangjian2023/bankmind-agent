@@ -47,6 +47,11 @@ def analyze_bills(ctx):
     m_prev = sum(abs(d["amount"]) for d in debits if d["ts"][:7] == last_month)
     change_pct = safe_eval("(cur - prev) / prev * 100", {"cur": m_cur, "prev": m_prev}) if m_prev > 0 else None
 
+    monthly_series = defaultdict(float)
+    for d in debits:
+        monthly_series[d["ts"][:7]] += abs(d["amount"])
+    monthly_sorted = [{"month": ym, "amount": round(v, 2)} for ym, v in sorted(monthly_series.items())]
+
     total = sum(amounts)
     if yearly:
         monthly = defaultdict(float)
@@ -82,6 +87,7 @@ def analyze_bills(ctx):
         "total_out": round(total, 2),
         "total_in": round(sum(incomes), 2),
         "category_totals": {k: round(v, 2) for k, v in cat_sorted},
+        "monthly_series": monthly_sorted,
         "month_current": round(m_cur, 2),
         "month_prev": round(m_prev, 2),
         "change_pct": round(change_pct, 1) if change_pct is not None else None,

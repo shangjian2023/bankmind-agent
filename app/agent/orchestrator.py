@@ -211,11 +211,11 @@ def _run(trace_id, user_id, it, slots, dag, level):
 
 
 def _compact(results):
-    keep_lists = {"accounts", "subscriptions", "anomalies_big", "anomalies_duplicate"}
+    keep_keys = {"accounts", "subscriptions", "anomalies_big", "anomalies_duplicate", "monthly_series", "category_totals"}
     out = {}
     for k, v in results.items():
         if isinstance(v, dict):
-            out[k] = {kk: vv for kk, vv in v.items() if not isinstance(vv, (list, dict)) or kk in keep_lists}
+            out[k] = {kk: vv for kk, vv in v.items() if not isinstance(vv, (list, dict)) or kk in keep_keys}
     return out
 
 

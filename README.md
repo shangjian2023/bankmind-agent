@@ -8,16 +8,33 @@
 ## 快速开始
 
 ```bash
-# 本地运行（Python 3.11+）
+# 后端（Python 3.11+）
 pip install -r requirements.txt
-uvicorn app.main:app --reload          # http://127.0.0.1:8000
+uvicorn app.main:app --reload          # http://127.0.0.1:8000（已构建前端时直接托管）
 
-# 测试（29 个用例）
+# 前端开发（Node 20+，热更新）
+cd frontend && npm install && npm run dev   # http://127.0.0.1:5173（/api 代理到 8000）
+cd frontend && npm run build                # 构建后由后端 :8000 直接托管 dist
+
+# 测试（46 个用例）
 pytest
 
-# Docker
+# Docker（多阶段：node 构建前端 → python 运行时）
 docker compose up --build              # http://127.0.0.1:8000
 ```
+
+## 前端技术栈（开源组件 + 丝滑动效）
+
+| 库 | 用途 |
+|---|---|
+| **Ant Design 6** | Layout/Menu/Card/Tag/Drawer/Modal/Timeline/Watermark/Tour/FloatButton/Dropdown/Alert/Spin/Empty/Message 等企业级组件 |
+| **Ant Design X**（蚂蚁官方 AI 组件库） | Bubble（打字机气泡）、Sender（对话输入）、ThoughtChain（Agent 决策链可视化） |
+| **Motion**（Framer Motion） | 消息错落入场、数字滚动余额、图表展开过渡（AnimatePresence/layout） |
+| **Recharts** | 账单分析饼图 + 月度柱状图（生长动画） |
+| **canvas-confetti** | 转账/申购成功庆祝彩带 |
+| 毛玻璃/渐变 CSS | backdrop-blur 玻璃拟态、径向渐变背景 |
+
+前端目录 `frontend/src/`：`App.tsx`（布局与对话状态机）、`api.ts`、`components/`（ConfirmCard/MfaModal(OTP)/BillCharts/ThoughtPanel/AuditDrawer/AnimatedNumber）。
 
 启动后自动建库并播种模拟数据；`POST /api/admin/reseed` 可重置演示数据。
 
