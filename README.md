@@ -7,6 +7,20 @@
 
 ## 快速开始
 
+### 一键启动（推荐）
+
+双击 **`start.bat`**（或命令行运行 `.\start.bat`）：自动安装缺失依赖 → 按需构建前端 → 启动服务 → 打开浏览器 http://127.0.0.1:8000。
+
+```powershell
+.\start.bat            # 生产演示模式（Ctrl+C 或关窗停止）
+.\start.bat -Dev       # 开发模式：后端热重载 :8000 + Vite :5173
+.\start.bat -ResetDB   # 清除 bank.db，重新播种演示数据后启动
+```
+
+若服务已在运行，再次执行会直接打开浏览器（幂等）。脚本逻辑见 `scripts/start.ps1`。
+
+### 手动方式
+
 ```bash
 # 后端（Python 3.11+）
 pip install -r requirements.txt
