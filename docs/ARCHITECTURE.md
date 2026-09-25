@@ -81,3 +81,21 @@ resolve_payee ──► check_balance ──► execute_transfer
 2. **异常交易识别**：均值+3σ 大额检测 + 同商户同金额 ≥3 次重复扣费识别（隐形订阅）。
 3. **沙箱求值**：AST 白名单（算术/白名单函数/白名单变量），禁止属性访问、导入、推导式、下标。
 4. **幻觉防护**：回复模板只插值工具返回字段；无工具结果即无数字输出。
+
+## 前端架构（frontend/，Vite + React 19 + TS）
+
+```
+src/
+├── App.tsx                  # 布局 + 对话状态机（send/decide/verifyMfa）
+├── api.ts / types.ts        # REST 封装与类型
+└── components/
+    ├── ConfirmCard.tsx      # 黄色确认卡片（聊天内嵌）
+    ├── MfaModal.tsx         # 红色 MFA 弹窗（Input.OTP 六格验证码）
+    ├── BillCharts.tsx       # Recharts 饼图/柱状图（AnimatePresence 展开）
+    ├── ThoughtPanel.tsx     # ThoughtChain 决策链（审计日志→思维链节点）
+    ├── AuditDrawer.tsx      # Timeline 审计抽屉（3s 轮询刷新）
+    └── AnimatedNumber.tsx   # Motion 数字滚动（余额）
+```
+
+技术选型：Ant Design 6（企业级组件）+ Ant Design X（AI 对话/思维链组件）+ Motion（动效）+ Recharts（图表）+ canvas-confetti（庆祝效果）。
+生产部署：`npm run build` 产物 `dist/` 由 FastAPI 直接托管（`app/main.py` 优先挂载 `frontend/dist`）；开发态 Vite 5173 代理 `/api` → 8000。
