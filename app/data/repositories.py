@@ -197,3 +197,128 @@ def query_audit(user_id, limit=100, trace_id=None):
     params.append(limit)
     with connect() as conn:
         return [dict(r) for r in conn.execute(q, params).fetchall()]
+
+
+# ---------- products / investments ----------
+
+def list_products():
+    with connect() as conn:
+        return [dict(r) for r in conn.execute("SELECT * FROM products ORDER BY risk_level, annual_rate DESC").fetchall()]
+
+
+def find_products_by_name(keyword):
+    with connect() as conn:
+        return [
+            dict(r)
+            for r in conn.execute("SELECT * FROM products WHERE name LIKE ?", (f"%{keyword}%",)).fetchall()
+        ]
+
+
+def insert_investment(user_id, product_code, product_name, amount, annual_rate):
+    with connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO investments(user_id,product_code,product_name,amount,annual_rate,status,purchased_at)"
+            " VALUES(?,?,?,?,?,'holding',?)",
+            (user_id, product_code, product_name, amount, annual_rate, now_iso()),
+        )
+        return cur.lastrowid
+
+
+def list_investments(user_id):
+    with connect() as conn:
+        return [
+            dict(r)
+            for r in conn.execute(
+                "SELECT * FROM investments WHERE user_id=? AND status='holding'", (user_id,)
+            ).fetchall()
+        ]
+
+
+def find_holdings_by_name(user_id, keyword):
+    with connect() as conn:
+        return [
+            dict(r)
+            for r in conn.execute(
+                "SELECT * FROM investments WHERE user_id=? AND status='holding' AND product_name LIKE ?",
+                (user_id, f"%{keyword}%"),
+            ).fetchall()
+        ]
+
+
+def redeem_investment(inv_id):
+    with connect() as conn:
+        conn.execute(
+            "UPDATE investments SET status='redeemed', redeemed_at=? WHERE id=?", (now_iso(), inv_id)
+        )
+
+
+def set_user_risk(user_id, level):
+    with connect() as conn:
+        conn.execute("UPDATE users SET risk_level=? WHERE id=?", (level, user_id))
+
+
+# ---------- scheduled transfers ----------
+
+def insert_scheduled(user_id, payee_name, payee_account, amount, execute_at, cycle, memo=None):
+    with connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO scheduled_transfers(user_id,payee_name,payee_account,amount,execute_at,cycle,status,memo,created_at)"
+            " VALUES(?,?,?,?,?,?, 'scheduled', ?, ?)",
+            (user_id, payee_name, payee_account, amount, execute_at, cycle, memo, now_iso()),
+        )
+        return cur.lastrowid
+
+
+def list_scheduled(user_id):
+    with connect() as conn:
+        return [
+            dict(r)
+            for r in conn.execute(
+                "SELECT * FROM scheduled_transfers WHERE user_id=? ORDER BY execute_at", (user_id,)
+            ).fetchall()
+        ]
+
+
+def due_scheduled(now_iso):
+    with connect() as conn:
+        return [
+            dict(r)
+            for r in conn.execute(
+                "SELECT * FROM scheduled_transfers WHERE status='scheduled' AND execute_at<=?", (now_iso,)
+            ).fetchall()
+        ]
+
+
+def update_scheduled(task_id, status=None, execute_at=None):
+    sets, params = [], []
+    if status is not None:
+        sets.append("status=?")
+        params.append(status)
+    if execute_at is not None:
+        sets.append("execute_at=?")
+        params.append(execute_at)
+    params.append(task_id)
+    with connect() as conn:
+        conn.execute(f"UPDATE scheduled_transfers SET {', '.join(sets)} WHERE id=?", params)
+
+
+# ---------- aa collections ----------
+
+def insert_aa(user_id, total, people, per_person, code):
+    with connect() as conn:
+        conn.execute(
+            "INSERT INTO aa_collections(user_id,total,people,per_person,code,status,created_at)"
+            " VALUES(?,?,?,?,?,'collecting',?)",
+            (user_id, total, people, per_person, code, now_iso()),
+        )
+
+
+# ---------- pending actions（补充） ----------
+
+def latest_pending(user_id):
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM pending_actions WHERE user_id=? AND status='pending' ORDER BY id DESC LIMIT 1",
+            (user_id,),
+        ).fetchone()
+    return dict(row) if row else None

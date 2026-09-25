@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS users(
   name TEXT NOT NULL,
   phone TEXT,
   spouse_name TEXT,
-  spouse_birthday TEXT
+  spouse_birthday TEXT,
+  risk_level TEXT
 );
 CREATE TABLE IF NOT EXISTS accounts(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,5 +63,49 @@ CREATE TABLE IF NOT EXISTS pending_actions(
   status TEXT NOT NULL DEFAULT 'pending',
   mfa_code TEXT,
   mfa_attempts INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS products(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  code TEXT NOT NULL,
+  name TEXT NOT NULL,
+  type TEXT NOT NULL,
+  annual_rate REAL NOT NULL,
+  risk_level TEXT NOT NULL,
+  min_amount REAL NOT NULL,
+  term_days INTEGER NOT NULL,
+  description TEXT
+);
+CREATE TABLE IF NOT EXISTS investments(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  product_code TEXT NOT NULL,
+  product_name TEXT NOT NULL,
+  amount REAL NOT NULL,
+  annual_rate REAL NOT NULL,
+  status TEXT NOT NULL DEFAULT 'holding',
+  purchased_at TEXT NOT NULL,
+  redeemed_at TEXT
+);
+CREATE TABLE IF NOT EXISTS scheduled_transfers(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  payee_name TEXT NOT NULL,
+  payee_account TEXT,
+  amount REAL NOT NULL,
+  execute_at TEXT NOT NULL,
+  cycle TEXT NOT NULL DEFAULT 'once',
+  status TEXT NOT NULL DEFAULT 'scheduled',
+  memo TEXT,
+  created_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS aa_collections(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  total REAL NOT NULL,
+  people INTEGER NOT NULL,
+  per_person REAL NOT NULL,
+  code TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'collecting',
   created_at TEXT NOT NULL
 );

@@ -1,0 +1,7 @@
+[
+  {"code": "P001", "name": "天天盈货币", "type": "货币基金", "annual_rate": 2.05, "risk_level": "R1", "min_amount": 1, "term_days": 7, "description": "随存随取，适合零钱理财"},
+  {"code": "P002", "name": "招银存180天", "type": "定期存款", "annual_rate": 1.85, "risk_level": "R1", "min_amount": 50, "term_days": 180, "description": "存款保险保障，到期还本付息"},
+  {"code": "P003", "name": "稳健90天", "type": "固收理财", "annual_rate": 2.8, "risk_level": "R2", "min_amount": 1000, "term_days": 90, "description": "中低波动，历史兑付率100%"},
+  {"code": "P004", "name": "智盈360天", "type": "固收理财", "annual_rate": 3.15, "risk_level": "R2", "min_amount": 1000, "term_days": 360, "description": "期限较长，收益略高"},
+  {"code": "P005", "name": "淘金混合", "type": "混合基金", "annual_rate": 5.2, "risk_level": "R3", "min_amount": 1000, "term_days": 365, "description": "含权益仓位，波动较大，历史年化仅供参考"}
+]

@@ -14,11 +14,20 @@ LEVEL_DESC = {
 STATIC_LEVELS = {
     "balance_query": GREEN,
     "bill_analysis": GREEN,
+    "bill_yearly": GREEN,
     "help": GREEN,
+    "investment_query": GREEN,
+    "my_investments": GREEN,
+    "risk_assessment": GREEN,
+    "scheduled_query": GREEN,
     "subscription_query": YELLOW,
     "subscription_cancel": YELLOW,
     "report_loss": RED,
     "birthday_plan": YELLOW,
+    "scheduled_transfer": YELLOW,
+    "aa_split": YELLOW,
+    "investment_purchase": RED,
+    "investment_redeem": RED,
 }
 
 

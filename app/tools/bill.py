@@ -16,7 +16,9 @@ def _stats(amounts):
 
 @tool("analyze_bills")
 def analyze_bills(ctx):
-    since = (date.today() - timedelta(days=90)).isoformat()
+    yearly = ctx["slots"].get("period") == "year"
+    window = 365 if yearly else 90
+    since = (date.today() - timedelta(days=window)).isoformat()
     rows = repo.transactions_since(ctx["user_id"], since)
     debits = [r for r in rows if r["amount"] < 0]
     incomes = [r["amount"] for r in rows if r["amount"] > 0]
@@ -45,14 +47,27 @@ def analyze_bills(ctx):
     m_prev = sum(abs(d["amount"]) for d in debits if d["ts"][:7] == last_month)
     change_pct = safe_eval("(cur - prev) / prev * 100", {"cur": m_cur, "prev": m_prev}) if m_prev > 0 else None
 
-    lines = [f"近90天支出 {sum(amounts):.2f} 元，收入 {sum(incomes):.2f} 元。"]
     total = sum(amounts)
-    for cat, t in cat_sorted[:5]:
-        share = safe_eval("x / total * 100", {"x": t, "total": total}) if total else 0
-        lines.append(f"- {cat}: {t:.2f} 元（占 {share:.1f}%）")
-    if change_pct is not None:
-        trend = "上升" if change_pct > 0 else "下降"
-        lines.append(f"本月支出 {m_cur:.2f} 元，较上月{trend} {abs(change_pct):.1f}%。")
+    if yearly:
+        monthly = defaultdict(float)
+        for d in debits:
+            monthly[d["ts"][:7]] += abs(d["amount"])
+        biggest = max(debits, key=lambda d: abs(d["amount"])) if debits else None
+        lines = [f"近一年支出 {total:.2f} 元，收入 {sum(incomes):.2f} 元。", "逐月支出："]
+        for ym in sorted(monthly):
+            lines.append(f"- {ym}: {monthly[ym]:.2f} 元")
+        for cat, t in cat_sorted[:3]:
+            lines.append(f"Top 分类 - {cat}: {t:.2f} 元")
+        if biggest:
+            lines.append(f"最大单笔支出：{biggest['counterparty']} {abs(biggest['amount']):.2f} 元（{biggest['ts'][:10]}）。")
+    else:
+        lines = [f"近90天支出 {total:.2f} 元，收入 {sum(incomes):.2f} 元。"]
+        for cat, t in cat_sorted[:5]:
+            share = safe_eval("x / total * 100", {"x": t, "total": total}) if total else 0
+            lines.append(f"- {cat}: {t:.2f} 元（占 {share:.1f}%）")
+        if change_pct is not None:
+            trend = "上升" if change_pct > 0 else "下降"
+            lines.append(f"本月支出 {m_cur:.2f} 元，较上月{trend} {abs(change_pct):.1f}%。")
     if big:
         names = "、".join(f"{b['counterparty']} {abs(b['amount']):.0f}元" for b in big)
         lines.append(f"⚠ 异常大额交易：{names}，建议核实。")

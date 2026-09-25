@@ -13,9 +13,7 @@ def do_report_loss(ctx):
 
 @tool("plan_birthday")
 def plan_birthday(ctx):
-    budget = ctx["slots"].get("budget") or ctx["slots"].get("amount")
-    if not budget:
-        raise ToolError("请告诉我预算金额，例如「预算500元」")
+    budget = ctx["slots"].get("budget") or ctx["slots"].get("amount") or 1000.0
     bal = ctx["results"].get("get_balance")
     if not bal or not bal.get("accounts"):
         raise ToolError("未找到您的账户")
@@ -30,9 +28,10 @@ def plan_birthday(ctx):
     flowers = round(budget * 0.6, 2)
     cake = round(budget * 0.4, 2)
     text = (
-        f"已为{spouse}的生日（{bday}，还有 {days_left} 天）制定方案："
-        f"鲜花预算 {flowers:.2f} 元 + 蛋糕预算 {cake:.2f} 元，合计 {budget:.2f} 元，"
-        f"已从活期锁定该预算（模拟），预订单号 {order_id}，生日前 1 天自动确认配送（模拟）。"
+        f"已为{spouse}的生日（{bday}，还有 {days_left} 天）制定关怀方案："
+        f"当月已从活期锁定 {budget:.2f} 元预算（模拟），"
+        f"生日前 2 天自动下单鲜花（{flowers:.2f} 元）与蛋糕（{cake:.2f} 元），"
+        f"预订单号 {order_id}，到期前会再次向您确认（模拟）。"
     )
     return {
         "order_id": order_id,

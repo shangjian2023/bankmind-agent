@@ -28,6 +28,10 @@ ASK = {
     "amount": "请问要转多少金额？例如「500元」。",
     "budget": "请问预算是多少？例如「预算500元」。",
     "merchant": "要取消哪个订阅？例如「取消健身房的订阅」。",
+    "product": "请问是哪款产品？例如「稳健90天」。可发送「推荐理财」查看列表。",
+    "risk_answer": "请选择您的风险偏好：保守 / 稳健 / 进取。",
+    "people": "一共几个人分摊？例如「4个人」。",
+    "schedule": "什么时候执行？例如「明天上午9点」「每周五」。",
 }
 
 
@@ -70,6 +74,8 @@ def handle_message(user_id, text):
 
     merged = dict(sess["slots"]) if sess and sess.get("intent") == it else {}
     merged.update({k: v for k, v in slots_mod.extract(text).items() if v})
+    if it == "bill_yearly":
+        merged.setdefault("period", "year")
     audit.log(trace_id, user_id, "slots", intent=it, detail=merged)
 
     template = planner.build(it)
@@ -79,6 +85,28 @@ def handle_message(user_id, text):
     if it == "help":
         SESSIONS.pop(user_id, None)
         return _out("ok", HELP_TEXT, trace_id)
+
+    if it == "abort":
+        SESSIONS.pop(user_id, None)
+        pending = repo.latest_pending(user_id)
+        extra = ""
+        if pending:
+            repo.set_pending_status(pending["id"], "declined")
+            extra = f"，待确认的「{pending['intent']}」操作已一并取消"
+        audit.log(
+            trace_id, user_id, "abort", detail={"cancelled_pending": pending["id"] if pending else None}
+        )
+        return _out("ok", "好的，已中止当前操作" + extra + "。", trace_id)
+
+    if it == "human_takeover":
+        SESSIONS.pop(user_id, None)
+        audit.log(trace_id, user_id, "human_takeover")
+        return _out(
+            "ok",
+            "已为您转接人工坐席（模拟）。智能助手已停止自动执行，会话与审计记录将完整移交给坐席；"
+            "如需继续使用智能服务，请直接发送新的指令。",
+            trace_id,
+        )
 
     missing = [s for s in template["required_slots"] if not merged.get(s)]
     if missing:
@@ -151,6 +179,16 @@ def _describe(intent, slots):
         return f"取消订阅「{slots.get('merchant', '')}」"
     if intent == "birthday_plan":
         return f"生日关怀方案，预算 {slots.get('budget') or slots.get('amount', 0):.2f} 元"
+    if intent == "investment_purchase":
+        return f"申购「{slots.get('product', '')}」{slots.get('amount', 0):.2f} 元"
+    if intent == "investment_redeem":
+        return f"赎回「{slots.get('product', '')}」持仓"
+    if intent == "scheduled_transfer":
+        s = slots.get("schedule") or {}
+        payee = slots.get("payee_raw") or slots.get("phone") or "（待解析联系人）"
+        return f"创建定时转账：向 {payee} 每次 {slots.get('amount', 0):.2f} 元，{s.get('desc', '指定时间')} 执行"
+    if intent == "aa_split":
+        return f"创建 AA 收款：总额 {slots.get('amount', 0):.2f} 元 ÷ {slots.get('people', '?')} 人"
     return json.dumps(slots, ensure_ascii=False)
 
 
@@ -194,7 +232,7 @@ def _build_reply(it, r):
             f"账户 {a['account_no']}（{a['type']}）余额 {a['balance']:.2f} 元。"
             for a in r["get_balance"]["accounts"]
         )
-    if it == "bill_analysis":
+    if it in ("bill_analysis", "bill_yearly"):
         return r["analyze_bills"]["report_text"]
     if it == "subscription_query":
         s = r["list_subscriptions"]
@@ -212,6 +250,27 @@ def _build_reply(it, r):
         return f"挂失成功，工单号 {d['ticket']}，卡片状态：{d['card_status']}。"
     if it == "birthday_plan":
         return r["plan_birthday"]["plan_text"]
+    if it == "investment_query":
+        return r["recommend_products"]["text"]
+    if it == "my_investments":
+        return r["my_investments"]["text"]
+    if it == "risk_assessment":
+        return r["save_risk"]["text"]
+    if it == "investment_purchase":
+        p = r["execute_purchase"]
+        return (
+            f"申购成功：「{p['product']}」{p['amount']:.2f} 元，参考年化 {p['annual_rate']:.2f}%，"
+            f"持仓编号 #{p['inv_id']}，余额 {p['balance_after']:.2f} 元。"
+        )
+    if it == "investment_redeem":
+        p = r["execute_redeem"]
+        return f"赎回成功：「{p['product']}」本金 {p['amount']:.2f} 元已回款到活期，余额 {p['balance_after']:.2f} 元。"
+    if it == "scheduled_transfer":
+        return r["create_scheduled"]["text"]
+    if it == "scheduled_query":
+        return r["list_scheduled"]["text"]
+    if it == "aa_split":
+        return r["split_aa"]["text"]
     return "操作完成。"
 
 

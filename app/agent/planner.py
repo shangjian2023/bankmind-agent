@@ -39,14 +39,79 @@ DAG_TEMPLATES = {
         "nodes": [{"id": "do_report_loss", "tool": "do_report_loss", "deps": []}],
     },
     "birthday_plan": {
-        "required_slots": ["budget"],
-        "optional_slots": [],
+        "required_slots": [],
+        "optional_slots": ["budget"],
         "nodes": [
             {"id": "get_balance", "tool": "get_balance", "deps": []},
             {"id": "plan_birthday", "tool": "plan_birthday", "deps": ["get_balance"]},
         ],
     },
     "help": {
+        "required_slots": [],
+        "optional_slots": [],
+        "nodes": [],
+    },
+    "investment_query": {
+        "required_slots": [],
+        "optional_slots": [],
+        "nodes": [{"id": "recommend_products", "tool": "recommend_products", "deps": []}],
+    },
+    "my_investments": {
+        "required_slots": [],
+        "optional_slots": [],
+        "nodes": [{"id": "my_investments", "tool": "my_investments", "deps": []}],
+    },
+    "risk_assessment": {
+        "required_slots": ["risk_answer"],
+        "optional_slots": [],
+        "nodes": [{"id": "save_risk", "tool": "save_risk", "deps": []}],
+    },
+    "investment_purchase": {
+        "required_slots": ["product", "amount"],
+        "optional_slots": [],
+        "nodes": [
+            {"id": "find_product", "tool": "find_product", "deps": []},
+            {"id": "check_balance", "tool": "check_balance", "deps": ["find_product"]},
+            {"id": "execute_purchase", "tool": "execute_purchase", "deps": ["find_product", "check_balance"]},
+        ],
+    },
+    "investment_redeem": {
+        "required_slots": ["product"],
+        "optional_slots": [],
+        "nodes": [
+            {"id": "find_holding", "tool": "find_holding", "deps": []},
+            {"id": "execute_redeem", "tool": "execute_redeem", "deps": ["find_holding"]},
+        ],
+    },
+    "scheduled_transfer": {
+        "required_slots": ["amount", "schedule"],
+        "optional_slots": ["payee_raw", "phone", "memo"],
+        "nodes": [
+            {"id": "resolve_payee", "tool": "resolve_payee", "deps": []},
+            {"id": "create_scheduled", "tool": "create_scheduled", "deps": ["resolve_payee"]},
+        ],
+    },
+    "scheduled_query": {
+        "required_slots": [],
+        "optional_slots": [],
+        "nodes": [{"id": "list_scheduled", "tool": "list_scheduled", "deps": []}],
+    },
+    "aa_split": {
+        "required_slots": ["amount", "people"],
+        "optional_slots": [],
+        "nodes": [{"id": "split_aa", "tool": "split_aa", "deps": []}],
+    },
+    "bill_yearly": {
+        "required_slots": [],
+        "optional_slots": [],
+        "nodes": [{"id": "analyze_bills", "tool": "analyze_bills", "deps": []}],
+    },
+    "abort": {
+        "required_slots": [],
+        "optional_slots": [],
+        "nodes": [],
+    },
+    "human_takeover": {
         "required_slots": [],
         "optional_slots": [],
         "nodes": [],

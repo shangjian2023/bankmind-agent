@@ -46,3 +46,10 @@ def audit_logs(user_id: str, limit: int = 50, trace_id: str | None = None):
 def reseed():
     database.reset_and_seed()
     return {"status": "reseeded"}
+
+
+@router.post("/admin/scheduler/tick")
+def scheduler_tick():
+    from app import scheduler
+
+    return {"executed": scheduler.tick()}

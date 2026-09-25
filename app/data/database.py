@@ -85,6 +85,12 @@ def seed():
                 "INSERT INTO subscriptions(user_id,merchant,amount,cycle,next_charge) VALUES(?,?,?,?,?)",
                 (s["user_id"], s["merchant"], s["amount"], s["cycle"], nc.isoformat()),
             )
+        for p in _load("products"):
+            conn.execute(
+                "INSERT INTO products(code,name,type,annual_rate,risk_level,min_amount,term_days,description)"
+                " VALUES(?,?,?,?,?,?,?,?)",
+                (p["code"], p["name"], p["type"], p["annual_rate"], p["risk_level"], p["min_amount"], p["term_days"], p["description"]),
+            )
 
 
 def reset_and_seed():
