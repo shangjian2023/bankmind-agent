@@ -16,7 +16,7 @@ uvicorn app.main:app --reload          # http://127.0.0.1:8000（已构建前端
 cd frontend && npm install && npm run dev   # http://127.0.0.1:5173（/api 代理到 8000）
 cd frontend && npm run build                # 构建后由后端 :8000 直接托管 dist
 
-# 测试（46 个用例）
+# 测试（45 个用例）
 pytest
 
 # Docker（多阶段：node 构建前端 → python 运行时）
