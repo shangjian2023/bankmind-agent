@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BankMind 银行AI智能体（模拟环境）</title>
+<style>
+  :root {
+    --bg: #0d1117; --panel: #161b22; --border: #30363d; --text: #e6edf3;
+    --dim: #8b949e; --green: #3fb950; --yellow: #d29922; --red: #f85149; --blue: #58a6ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); height: 100vh; display: flex; flex-direction: column; }
+  header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 14px; }
+  header h1 { font-size: 18px; }
+  header .badge { font-size: 12px; color: var(--dim); border: 1px solid var(--border); padding: 2px 8px; border-radius: 10px; }
+  header select { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; }
+  header button { margin-left: auto; background: none; border: 1px solid var(--border); color: var(--dim); padding: 4px 12px; border-radius: 6px; cursor: pointer; }
+  #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+  .msg { max-width: 78%; padding: 10px 14px; border-radius: 12px; white-space: pre-wrap; line-height: 1.6; font-size: 14px; }
+  .user { align-self: flex-end; background: #1f3a5f; border: 1px solid #264a7a; }
+  .bot { align-self: flex-start; background: var(--panel); border: 1px solid var(--border); }
+  .tag { display: inline-block; font-size: 11px; padding: 1px 8px; border-radius: 8px; margin-bottom: 6px; }
+  .tag-ok { color: var(--green); border: 1px solid var(--green); }
+  .tag-confirm { color: var(--yellow); border: 1px solid var(--yellow); }
+  .tag-mfa { color: var(--red); border: 1px solid var(--red); }
+  .tag-reject { color: var(--red); border: 1px solid var(--red); }
+  .actions { display: flex; gap: 10px; margin-top: 10px; }
+  .actions button { padding: 6px 18px; border-radius: 6px; cursor: pointer; border: 1px solid var(--border); background: var(--panel); color: var(--text); }
+  .actions .yes { border-color: var(--green); color: var(--green); }
+  .actions .no { border-color: var(--red); color: var(--red); }
+  .mfa-row { display: flex; gap: 8px; margin-top: 10px; }
+  .mfa-row input { width: 120px; background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px; padding: 6px; letter-spacing: 3px; text-align: center; font-size: 16px; }
+  .mfa-row button { padding: 6px 14px; border-radius: 6px; cursor: pointer; border: 1px solid var(--yellow); color: var(--yellow); background: none; }
+  #quick { display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 20px; border-top: 1px solid var(--border); }
+  #quick button { background: var(--panel); color: var(--dim); border: 1px solid var(--border); border-radius: 14px; padding: 4px 12px; cursor: pointer; font-size: 12px; }
+  #quick button:hover { color: var(--text); border-color: var(--blue); }
+  #inputbar { display: flex; gap: 10px; padding: 14px 20px; }
+  #inputbar input { flex: 1; background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 14px; }
+  #inputbar button { background: #1f6feb; border: none; color: #fff; border-radius: 8px; padding: 10px 24px; cursor: pointer; font-size: 14px; }
+  #audit { position: fixed; top: 0; right: -460px; width: 440px; height: 100vh; background: var(--panel); border-left: 1px solid var(--border); transition: right .25s; padding: 16px; overflow-y: auto; z-index: 10; }
+  #audit.open { right: 0; }
+  #audit h3 { margin-bottom: 10px; font-size: 14px; }
+  #audit .log { font-size: 11px; font-family: Consolas, monospace; border-bottom: 1px solid var(--border); padding: 6px 0; color: var(--dim); }
+  #audit .log b { color: var(--blue); }
+</style>
+</head>
+<body>
+<header>
+  <h1>🏦 BankMind</h1>
+  <span class="badge">模拟环境 · 无真实资金</span>
+  <select id="userSel"></select>
+  <button onclick="toggleAudit()">审计日志</button>
+</header>
+<div id="chat"></div>
+<div id="quick"></div>
+<div id="inputbar">
+  <input id="msg" placeholder="输入指令，例如：给李娜转500元 备注买菜" autofocus>
+  <button onclick="send()">发送</button>
+</div>
+<div id="audit"><h3>操作审计（实时）</h3><div id="auditBody"></div></div>
+<script>
+const QUICK = [
+  "查一下我的余额",
+  "分析一下我最近的账单",
+  "查我的订阅",
+  "给李娜转500元 备注买菜",
+  "给王强转3000元",
+  "取消健身房的订阅",
+  "我的卡丢了，帮我挂失",
+  "我爱人生日快到了，帮我安排鲜花蛋糕，预算500元",
+];
+let pendingCard = null;
+const chat = document.getElementById("chat");
+const msgEl = document.getElementById("msg");
+
+function addMsg(text, who, status) {
+  const div = document.createElement("div");
+  div.className = "msg " + (who === "user" ? "user" : "bot");
+  const tagMap = { ok: "tag-ok", need_confirm: "tag-confirm", need_mfa: "tag-mfa", rejected: "tag-reject", locked: "tag-reject" };
+  if (who === "bot" && status) {
+    div.innerHTML = `<span class="tag ${tagMap[status] || ""}">${status}</span>\n` + esc(text);
+  } else {
+    div.textContent = text;
+  }
+  chat.appendChild(div);
+  chat.scrollTop = chat.scrollHeight;
+  return div;
+}
+function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;"); }
+
+async function api(path, body) {
+  const r = await fetch("/api" + path, {
+    method: body ? "POST" : "GET",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  return r.json();
+}
+
+async function send(text) {
+  const t = (text || msgEl.value).trim();
+  if (!t) return;
+  msgEl.value = "";
+  if (pendingCard) { pendingCard.remove(); pendingCard = null; }
+  addMsg(t, "user");
+  const res = await api("/chat", { user_id: userSel.value, message: t });
+  renderBot(res);
+}
+
+function renderBot(res) {
+  const div = addMsg(res.reply, "bot", res.status);
+  if (res.status === "need_confirm" && res.action_id) {
+    const row = document.createElement("div");
+    row.className = "actions";
+    const yes = document.createElement("button"); yes.textContent = "✓ 确认执行"; yes.className = "yes";
+    const no = document.createElement("button"); no.textContent = "✗ 取消"; no.className = "no";
+    yes.onclick = () => finish("/confirm", { action_id: res.action_id, approve: true }, div);
+    no.onclick = () => finish("/confirm", { action_id: res.action_id, approve: false }, div);
+    row.append(yes, no); div.appendChild(row);
+    pendingCard = div;
+  } else if (res.status === "need_mfa" && res.action_id) {
+    const row = document.createElement("div");
+    row.className = "mfa-row";
+    const inp = document.createElement("input"); inp.maxLength = 6; inp.placeholder = "验证码";
+    const btn = document.createElement("button"); btn.textContent = "验证";
+    btn.onclick = () => finish("/mfa/verify", { action_id: res.action_id, code: inp.value }, div);
+    row.append(inp, btn); div.appendChild(row);
+    pendingCard = div;
+    inp.focus();
+  }
+  refreshAudit();
+}
+
+async function finish(path, body, card) {
+  const res = await api(path, body);
+  addMsg(res.reply, "bot", res.status);
+  card.remove();
+  if (pendingCard === card) pendingCard = null;
+  refreshAudit();
+}
+
+async function refreshAudit() {
+  const r = await api(`/audit?user_id=${userSel.value}&limit=40`);
+  document.getElementById("auditBody").innerHTML = r.logs
+    .map(l => `<div class="log"><b>${l.ts}</b> [${l.stage}]${l.intent ? " " + l.intent : ""}${l.level ? "/" + l.level : ""}</div>`)
+    .join("");
+}
+function toggleAudit() { document.getElementById("audit").classList.toggle("open"); }
+
+msgEl.addEventListener("keydown", e => { if (e.key === "Enter") send(); });
+
+(async () => {
+  const u = await api("/users");
+  userSel.innerHTML = u.users.map(x => `<option value="${x.id}">${x.name}（${x.id}）</option>`).join("");
+  QUICK.forEach(q => {
+    const b = document.createElement("button");
+    b.textContent = q;
+    b.onclick = () => send(q);
+    document.getElementById("quick").appendChild(b);
+  });
+  addMsg("您好，我是 BankMind 银行智能助手（模拟环境，无真实资金）。试试下方快捷指令或直接输入。", "bot");
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,15 @@
+services:
+  bank-agent:
+    build: .
+    container_name: bankmind
+    ports:
+      - "8000:8000"
+    environment:
+      LLM_MODE: mock
+      DEV_SHOW_MFA_CODE: "1"
+    volumes:
+      - bankdata:/data
+    restart: unless-stopped
+
+volumes:
+  bankdata:

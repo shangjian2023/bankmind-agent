@@ -1,0 +1,7 @@
+[
+  {"user_id": "u001", "merchant": "腾讯视频VIP", "amount": 30.0, "cycle": "monthly", "next_charge_days_ahead": 3},
+  {"user_id": "u001", "merchant": "网易云音乐", "amount": 15.0, "cycle": "monthly", "next_charge_days_ahead": 12},
+  {"user_id": "u001", "merchant": "iCloud 50G", "amount": 6.0, "cycle": "monthly", "next_charge_days_ahead": 20},
+  {"user_id": "u001", "merchant": "超级健身房", "amount": 299.0, "cycle": "monthly", "next_charge_days_ahead": 5},
+  {"user_id": "u001", "merchant": "京东PLUS", "amount": 149.0, "cycle": "yearly", "next_charge_days_ahead": 200}
+]

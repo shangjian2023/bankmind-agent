@@ -1,0 +1,6 @@
+[
+  {"user_id": "u001", "name": "李娜", "phone": "13900002222", "account_no": "6222 0099 8877 6655", "relation": "配偶"},
+  {"user_id": "u001", "name": "王强", "phone": "13700003333", "account_no": "6222 0088 7766 5544", "relation": "朋友"},
+  {"user_id": "u001", "name": "陈晨", "phone": "13600004444", "account_no": "6222 0077 6655 4433", "relation": "同事"},
+  {"user_id": "u001", "name": "赵敏", "phone": "13500005555", "account_no": "6222 0066 5544 3322", "relation": "房东"}
+]
