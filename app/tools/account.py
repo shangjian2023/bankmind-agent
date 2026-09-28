@@ -1,7 +1,6 @@
+from app import config
 from app.data import repositories as repo
 from app.tools.registry import tool, ToolError
-
-SPOUSE_WORDS = {"爱人", "老婆", "媳妇", "太太", "老公", "丈夫", "配偶"}
 
 
 @tool("resolve_payee")
@@ -12,7 +11,7 @@ def resolve_payee(ctx):
         if c:
             return {"name": c["name"], "account_no": c["account_no"], "matched_by": "手机号"}
     raw = slots.get("payee_raw") or ""
-    if raw in SPOUSE_WORDS:
+    if raw in config.SPOUSE_KEYWORDS:
         c = repo.find_spouse(ctx["user_id"])
         if c:
             return {"name": c["name"], "account_no": c["account_no"], "matched_by": "亲人称呼"}

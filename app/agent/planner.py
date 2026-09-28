@@ -116,6 +116,42 @@ DAG_TEMPLATES = {
         "optional_slots": [],
         "nodes": [],
     },
+    # 卡片管理
+    "card_query": {
+        "required_slots": [],
+        "optional_slots": [],
+        "nodes": [{"id": "list_cards", "tool": "list_cards", "deps": []}],
+    },
+    "card_apply": {
+        "required_slots": [],
+        "optional_slots": ["card_type"],
+        "nodes": [{"id": "apply_card", "tool": "apply_card", "deps": []}],
+    },
+    "card_activate": {
+        "required_slots": ["card_id"],
+        "optional_slots": [],
+        "nodes": [{"id": "activate_card", "tool": "activate_card", "deps": []}],
+    },
+    "card_freeze": {
+        "required_slots": ["card_id"],
+        "optional_slots": [],
+        "nodes": [{"id": "freeze_card", "tool": "freeze_card", "deps": []}],
+    },
+    "card_unfreeze": {
+        "required_slots": ["card_id"],
+        "optional_slots": [],
+        "nodes": [{"id": "unfreeze_card", "tool": "unfreeze_card", "deps": []}],
+    },
+    "card_limit": {
+        "required_slots": ["card_id"],
+        "optional_slots": ["daily_limit", "monthly_limit"],
+        "nodes": [{"id": "update_card_limit", "tool": "update_card_limit", "deps": []}],
+    },
+    "card_deactivate": {
+        "required_slots": ["card_id"],
+        "optional_slots": [],
+        "nodes": [{"id": "deactivate_card", "tool": "deactivate_card", "deps": []}],
+    },
 }
 
 

@@ -18,8 +18,16 @@ PATTERNS = [
 COMPILED = [(re.compile(p, re.IGNORECASE), label) for p, label in PATTERNS]
 
 
-def check_injection(text):
-    """返回 (是否安全, 命中原因)。"""
+def check_injection(text: str) -> tuple[bool, str | None]:
+    """
+    检查文本是否包含注入攻击模式。
+
+    Args:
+        text: 待检查的用户输入文本
+
+    Returns:
+        (is_safe, reason): 是否安全，如果不安全则返回命中的原因
+    """
     for rx, label in COMPILED:
         if rx.search(text):
             return False, label

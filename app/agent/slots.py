@@ -1,21 +1,36 @@
 import re
 from datetime import datetime, timedelta
+from typing import Optional
+
+from app import config
 
 AMOUNT_RX = re.compile(r"(\d+(?:\.\d{1,2})?)\s*(元|块钱|块|人民币|¥)", re.IGNORECASE)
 BARE_NUM_RX = re.compile(r"(?:转|付|汇)\s*(\d+(?:\.\d{1,2})?)")
 PHONE_RX = re.compile(r"1[3-9]\d{9}")
-MEMO_RX = re.compile(r"备注[:：]?\s*([^\s，。,]{1,30})")
-PAYEE_RX = re.compile(r"(?:转给|付给|汇给|给)\s*([^\s，。,转账付汇块钱元]{1,8}?)(?=\s|\d|，|,|。|$|转|付|汇)")
-PRODUCT_RX = re.compile(r"(?:申购|购买|买入|赎回)\s*([一-龥A-Za-z0-9]{2,15})")
+MEMO_RX = re.compile(rf"备注[:：]?\s*([^\s，。,]{{1,{config.MAX_MEMO_LENGTH}}})")
+PAYEE_RX = re.compile(rf"(?:转给|付给|汇给|给)\s*([^\s，。,转账付汇块钱元]{{1,{config.MAX_PAYEE_LENGTH}}}?)(?=\s|\d|，|,|。|$|转|付|汇)")
+PRODUCT_RX = re.compile(rf"(?:申购|购买|买入|赎回)\s*([一-龥A-Za-z0-9]{{2,{config.MAX_PRODUCT_LENGTH}}})")
 RISK_RX = re.compile(r"(保守|稳健|进取)")
 PEOPLE_RX = re.compile(r"(\d+)\s*(?:个)?人")
 SCHED_RX = re.compile(r"(今天|明天|后天|每天|每周[一二三四五六日天]?|\d{1,2}月\d{1,2}日?)")
 HOUR_RX = re.compile(r"(上午|下午|晚上)?\s*(\d{1,2})[点时:：]")
+CARD_ID_RX = re.compile(r"(?:卡片|卡)\s*(\d+)")
+DAILY_LIMIT_RX = re.compile(r"日限额\s*(?:为|到|至)?\s*(\d+(?:\.\d{1,2})?)")
+MONTHLY_LIMIT_RX = re.compile(r"月限额\s*(?:为|到|至)?\s*(\d+(?:\.\d{1,2})?)")
 
 WEEK = {"一": 0, "二": 1, "三": 2, "四": 3, "五": 4, "六": 5, "日": 6, "天": 6}
 
 
-def _schedule(text):
+def _schedule(text: str) -> Optional[dict]:
+    """
+    解析时间表达式，提取调度信息。
+
+    Args:
+        text: 用户输入文本
+
+    Returns:
+        包含 execute_at、cycle、desc 的字典，或 None
+    """
     m = SCHED_RX.search(text)
     if not m:
         return None
@@ -58,12 +73,21 @@ def _schedule(text):
     return {"execute_at": dt.isoformat(timespec="seconds"), "cycle": cycle, "desc": f"{tok} {hour:02d}:00"}
 
 
-def extract(text):
+def extract(text: str) -> dict:
+    """
+    从用户输入中提取槽位信息。
+
+    Args:
+        text: 用户输入文本
+
+    Returns:
+        包含提取到的槽位的字典，如 amount、phone、payee_raw 等
+    """
     slots = {}
     m = AMOUNT_RX.search(text) or BARE_NUM_RX.search(text)
     if m:
         val = float(m.group(1))
-        if val < 10_000_000:
+        if val < config.MAX_TRANSFER_AMOUNT:
             slots["amount"] = val
     m = PHONE_RX.search(text)
     if m:
@@ -78,11 +102,11 @@ def extract(text):
     if m:
         slots["budget"] = float(m.group(1))
         slots.setdefault("amount", slots["budget"])
-    m = re.search(r"(?:取消|退订|关闭)\s*([一-龥A-Za-z0-9]{2,12}?)的?(?:订阅|会员|代扣|自动续费)", text)
+    m = re.search(rf"(?:取消|退订|关闭)\s*([一-龥A-Za-z0-9]{{2,{config.MAX_MERCHANT_LENGTH}}}?)的?(?:订阅|会员|代扣|自动续费)", text)
     if m:
         slots["merchant"] = m.group(1)
     if not m:
-        m = re.search(r"(?:取消|退订|关闭)([一-龥A-Za-z0-9]{2,12})", text)
+        m = re.search(rf"(?:取消|退订|关闭)([一-龥A-Za-z0-9]{{2,{config.MAX_MERCHANT_LENGTH}}}?)", text)
         if m:
             slots["merchant"] = m.group(1)
     m = PRODUCT_RX.search(text)
@@ -98,4 +122,14 @@ def extract(text):
     sched = _schedule(text)
     if sched:
         slots["schedule"] = sched
+    # 卡片相关槽位
+    m = CARD_ID_RX.search(text)
+    if m:
+        slots["card_id"] = int(m.group(1))
+    m = DAILY_LIMIT_RX.search(text)
+    if m:
+        slots["daily_limit"] = float(m.group(1))
+    m = MONTHLY_LIMIT_RX.search(text)
+    if m:
+        slots["monthly_limit"] = float(m.group(1))
     return slots

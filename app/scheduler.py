@@ -1,13 +1,17 @@
 """定时转账调度器：到期执行、余额不足失败、超日累计安全拦截（blocked，需手动 MFA 转账）。"""
 
 import asyncio
+import logging
 import uuid
 from datetime import datetime, timedelta
 
 from app import config
+from app.data import database
 from app.data import repositories as repo
 from app.data.database import now_iso
 from app.security import audit
+
+logger = logging.getLogger("app.scheduler")
 
 
 def tick():
@@ -26,16 +30,24 @@ def tick():
             audit.log(trace_id, t["user_id"], "scheduled_blocked", intent="scheduled_transfer",
                       detail={"reason": "超日累计限额，需手动发起并完成 MFA"})
             continue
-        repo.insert_transaction(
-            acct["id"], t["user_id"], f"定时转账-{t['payee_name']}", -t["amount"],
-            "transfer_out", t.get("memo") or "定时转账",
-        )
-        repo.debit_account(acct["id"], t["amount"])
-        if t["cycle"] != "once":
-            nxt = datetime.fromisoformat(t["execute_at"]) + timedelta(days=1 if t["cycle"] == "daily" else 7)
-            repo.update_scheduled(t["id"], status="scheduled", execute_at=nxt.isoformat(timespec="seconds"))
-        else:
-            repo.update_scheduled(t["id"], status="executed")
+        try:
+            with database.transaction():
+                repo.insert_transaction(
+                    acct["id"], t["user_id"], f"定时转账-{t['payee_name']}", -t["amount"],
+                    "transfer_out", t.get("memo") or "定时转账",
+                )
+                repo.debit_account(acct["id"], t["amount"])
+                if t["cycle"] != "once":
+                    nxt = datetime.fromisoformat(t["execute_at"]) + timedelta(days=1 if t["cycle"] == "daily" else 7)
+                    repo.update_scheduled(t["id"], status="scheduled", execute_at=nxt.isoformat(timespec="seconds"))
+                else:
+                    repo.update_scheduled(t["id"], status="executed")
+        except Exception as e:
+            repo.update_scheduled(t["id"], status="failed")
+            audit.log(trace_id, t["user_id"], "scheduled_failed", intent="scheduled_transfer",
+                      detail={"reason": str(e)})
+            logger.error(f"定时转账执行失败: {e}", extra={"task_id": t["id"], "user_id": t["user_id"]})
+            continue
         audit.log(trace_id, t["user_id"], "scheduled_executed", intent="scheduled_transfer",
                   detail={"payee": t["payee_name"], "amount": t["amount"]})
         executed.append(t["id"])
@@ -43,9 +55,10 @@ def tick():
 
 
 async def loop():
+    logger.info("调度器启动")
     while True:
         await asyncio.sleep(30)
         try:
             tick()
-        except Exception as e:  # 后台任务不允许中断
-            print(f"[scheduler] tick error: {e}")
+        except Exception as e:
+            logger.error(f"调度器异常: {e}", exc_info=True)

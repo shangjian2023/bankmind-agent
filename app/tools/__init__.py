@@ -6,3 +6,4 @@ import app.tools.misc  # noqa: F401
 import app.tools.investment  # noqa: F401
 import app.tools.schedule  # noqa: F401
 import app.tools.aa  # noqa: F401
+import app.tools.card  # noqa: F401

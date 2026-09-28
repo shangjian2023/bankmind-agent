@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BankMind 管理后台</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+    <link href="https://unpkg.com/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .sidebar { width: 240px; }
+        .content { flex: 1; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // API 配置
+        const API_BASE = '/admin';
+        let authToken = localStorage.getItem('admin_token') || '';
+
+        // Axios 拦截器
+        axios.interceptors.request.use(config => {
+            if (authToken) {
+                config.headers.Authorization = `Bearer ${authToken}`;
+            }
+            return config;
+        });
+
+        // 登录页面
+        function LoginPage({ onLogin }) {
+            const [username, setUsername] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                try {
+                    const res = await axios.post(`${API_BASE}/auth/login`, { username, password });
+                    authToken = res.data.token;
+                    localStorage.setItem('admin_token', authToken);
+                    onLogin(res.data);
+                } catch (err) {
+                    setError('登录失败，请检查用户名和密码');
+                }
+            };
+
+            return (
+                <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                    <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
+                        <h2 className="text-2xl font-bold text-center mb-6">BankMind 管理后台</h2>
+                        <form onSubmit={handleSubmit}>
+                            <div className="mb-4">
+                                <label className="block text-gray-700 mb-2">用户名</label>
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={e => setUsername(e.target.value)}
+                                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            <div className="mb-6">
+                                <label className="block text-gray-700 mb-2">密码</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={e => setPassword(e.target.value)}
+                                    className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    required
+                                />
+                            </div>
+                            {error && <div className="text-red-500 mb-4">{error}</div>}
+                            <button
+                                type="submit"
+                                className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition"
+                            >
+                                登录
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            );
+        }
+
+        // 侧边栏
+        function Sidebar({ activeMenu, onMenuChange, onLogout }) {
+            const menus = [
+                { key: 'dashboard', label: '仪表盘', icon: '📊' },
+                { key: 'users', label: '用户管理', icon: '👥' },
+                { key: 'api-keys', label: 'API Key 管理', icon: '🔑' },
+                { key: 'intents', label: '意图管理', icon: '🎯' },
+                { key: 'announcements', label: '公告管理', icon: '📢' },
+                { key: 'config', label: '系统配置', icon: '⚙️' },
+                { key: 'logs', label: '操作日志', icon: '📝' },
+            ];
+
+            return (
+                <div className="sidebar bg-gray-800 text-white h-screen flex flex-col">
+                    <div className="p-4 border-b border-gray-700">
+                        <h1 className="text-xl font-bold">BankMind</h1>
+                        <p className="text-sm text-gray-400">管理后台</p>
+                    </div>
+                    <nav className="flex-1 p-4">
+                        {menus.map(menu => (
+                            <div
+                                key={menu.key}
+                                onClick={() => onMenuChange(menu.key)}
+                                className={`flex items-center px-4 py-3 mb-2 rounded-lg cursor-pointer transition ${
+                                    activeMenu === menu.key
+                                        ? 'bg-blue-600 text-white'
+                                        : 'text-gray-300 hover:bg-gray-700'
+                                }`}
+                            >
+                                <span className="mr-3">{menu.icon}</span>
+                                <span>{menu.label}</span>
+                            </div>
+                        ))}
+                    </nav>
+                    <div className="p-4 border-t border-gray-700">
+                        <button
+                            onClick={onLogout}
+                            className="w-full px-4 py-2 text-left text-gray-300 hover:bg-gray-700 rounded-lg transition"
+                        >
+                            🚪 退出登录
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        // 仪表盘
+        function Dashboard() {
+            const [stats, setStats] = useState({
+                totalUsers: 0,
+                totalAnnouncements: 0,
+                todayLogs: 0,
+                activeApiKeys: 0
+            });
+
+            useEffect(() => {
+                // 加载统计数据
+                Promise.all([
+                    axios.get(`${API_BASE}/users?page=1&page_size=1`),
+                    axios.get(`${API_BASE}/announcements`),
+                    axios.get(`${API_BASE}/logs?page=1&page_size=1`),
+                    axios.get(`${API_BASE}/api-keys`)
+                ]).then(([usersRes, annRes, logsRes, keysRes]) => {
+                    setStats({
+                        totalUsers: usersRes.data.total,
+                        totalAnnouncements: annRes.data.total,
+                        todayLogs: logsRes.data.total,
+                        activeApiKeys: keysRes.data.keys.filter(k => k.status === 'active').length
+                    });
+                }).catch(err => console.error('Failed to load stats:', err));
+            }, []);
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">仪表盘</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="text-gray-500 text-sm">用户总数</div>
+                            <div className="text-3xl font-bold text-blue-600 mt-2">{stats.totalUsers}</div>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="text-gray-500 text-sm">公告数量</div>
+                            <div className="text-3xl font-bold text-green-600 mt-2">{stats.totalAnnouncements}</div>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="text-gray-500 text-sm">操作日志</div>
+                            <div className="text-3xl font-bold text-purple-600 mt-2">{stats.todayLogs}</div>
+                        </div>
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <div className="text-gray-500 text-sm">活跃 API Key</div>
+                            <div className="text-3xl font-bold text-orange-600 mt-2">{stats.activeApiKeys}</div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 用户管理
+        function UsersPage() {
+            const [users, setUsers] = useState([]);
+            const [total, setTotal] = useState(0);
+            const [page, setPage] = useState(1);
+            const [showModal, setShowModal] = useState(false);
+            const [editingUser, setEditingUser] = useState(null);
+
+            const loadUsers = () => {
+                axios.get(`${API_BASE}/users?page=${page}&page_size=20`)
+                    .then(res => {
+                        setUsers(res.data.users);
+                        setTotal(res.data.total);
+                    })
+                    .catch(err => console.error('Failed to load users:', err));
+            };
+
+            useEffect(() => { loadUsers(); }, [page]);
+
+            const handleDelete = (userId) => {
+                if (confirm('确定要删除这个用户吗？')) {
+                    axios.delete(`${API_BASE}/users/${userId}`)
+                        .then(() => loadUsers())
+                        .catch(err => alert('删除失败'));
+                }
+            };
+
+            return (
+                <div>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold">用户管理</h2>
+                        <button
+                            onClick={() => { setEditingUser(null); setShowModal(true); }}
+                            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                        >
+                            添加用户
+                        </button>
+                    </div>
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">用户名</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">邮箱</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">角色</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {users.map(user => (
+                                    <tr key={user.id}>
+                                        <td className="px-6 py-4 text-sm">{user.id}</td>
+                                        <td className="px-6 py-4 text-sm font-medium">{user.name}</td>
+                                        <td className="px-6 py-4 text-sm">{user.email || '-'}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <span className={`px-2 py-1 rounded text-xs ${
+                                                user.role === 'super_admin' ? 'bg-red-100 text-red-800' :
+                                                user.role === 'admin' ? 'bg-orange-100 text-orange-800' :
+                                                'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {user.role}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <span className={`px-2 py-1 rounded text-xs ${
+                                                user.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                'bg-red-100 text-red-800'
+                                            }`}>
+                                                {user.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <button
+                                                onClick={() => { setEditingUser(user); setShowModal(true); }}
+                                                className="text-blue-600 hover:text-blue-800 mr-3"
+                                            >
+                                                编辑
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(user.id)}
+                                                className="text-red-600 hover:text-red-800"
+                                            >
+                                                删除
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="mt-4 flex justify-between items-center">
+                        <div className="text-sm text-gray-500">共 {total} 条记录</div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="px-3 py-1 border rounded disabled:opacity-50"
+                            >
+                                上一页
+                            </button>
+                            <span className="px-3 py-1">第 {page} 页</span>
+                            <button
+                                onClick={() => setPage(p => p + 1)}
+                                disabled={page * 20 >= total}
+                                className="px-3 py-1 border rounded disabled:opacity-50"
+                            >
+                                下一页
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // API Key 管理
+        function ApiKeysPage() {
+            const [keys, setKeys] = useState([]);
+            const [showModal, setShowModal] = useState(false);
+
+            const loadKeys = () => {
+                axios.get(`${API_BASE}/api-keys`)
+                    .then(res => setKeys(res.data.keys))
+                    .catch(err => console.error('Failed to load API keys:', err));
+            };
+
+            useEffect(() => { loadKeys(); }, []);
+
+            const handleDelete = (keyId) => {
+                if (confirm('确定要删除这个 API Key 吗？')) {
+                    axios.delete(`${API_BASE}/api-keys/${keyId}`)
+                        .then(() => loadKeys())
+                        .catch(err => alert('删除失败'));
+                }
+            };
+
+            const handleTest = async (keyId) => {
+                try {
+                    const res = await axios.post(`${API_BASE}/api-keys/${keyId}/test`);
+                    alert(`测试结果: ${res.data.status}\n${res.data.message}`);
+                } catch (err) {
+                    alert('测试失败');
+                }
+            };
+
+            return (
+                <div>
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-2xl font-bold">API Key 管理</h2>
+                        <button
+                            onClick={() => setShowModal(true)}
+                            className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600"
+                        >
+                            添加 API Key
+                        </button>
+                    </div>
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">名称</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">提供商</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Key</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">模型</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {keys.map(key => (
+                                    <tr key={key.id}>
+                                        <td className="px-6 py-4 text-sm font-medium">{key.key_name}</td>
+                                        <td className="px-6 py-4 text-sm">{key.provider}</td>
+                                        <td className="px-6 py-4 text-sm font-mono text-xs">{key.api_key_masked}</td>
+                                        <td className="px-6 py-4 text-sm">{key.model_name || '-'}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <span className={`px-2 py-1 rounded text-xs ${
+                                                key.status === 'active' ? 'bg-green-100 text-green-800' :
+                                                'bg-red-100 text-red-800'
+                                            }`}>
+                                                {key.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <button
+                                                onClick={() => handleTest(key.id)}
+                                                className="text-green-600 hover:text-green-800 mr-3"
+                                            >
+                                                测试
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(key.id)}
+                                                className="text-red-600 hover:text-red-800"
+                                            >
+                                                删除
+                                            </button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        // 意图管理
+        function IntentsPage() {
+            const [intents, setIntents] = useState([]);
+
+            const loadIntents = () => {
+                axios.get(`${API_BASE}/intents`)
+                    .then(res => setIntents(res.data.intents))
+                    .catch(err => console.error('Failed to load intents:', err));
+            };
+
+            useEffect(() => { loadIntents(); }, []);
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">意图管理</h2>
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">意图名称</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">示例数量</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">优先级</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {intents.map(intent => (
+                                    <tr key={intent.id}>
+                                        <td className="px-6 py-4 text-sm font-medium">{intent.intent_name}</td>
+                                        <td className="px-6 py-4 text-sm">{intent.description}</td>
+                                        <td className="px-6 py-4 text-sm">{intent.examples.length}</td>
+                                        <td className="px-6 py-4 text-sm">{intent.priority}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <span className={`px-2 py-1 rounded text-xs ${
+                                                intent.enabled ? 'bg-green-100 text-green-800' :
+                                                'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {intent.enabled ? '启用' : '禁用'}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        // 公告管理
+        function AnnouncementsPage() {
+            const [announcements, setAnnouncements] = useState([]);
+
+            const loadAnnouncements = () => {
+                axios.get(`${API_BASE}/announcements`)
+                    .then(res => setAnnouncements(res.data.announcements))
+                    .catch(err => console.error('Failed to load announcements:', err));
+            };
+
+            useEffect(() => { loadAnnouncements(); }, []);
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">公告管理</h2>
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">标题</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">类型</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">优先级</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">状态</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">创建时间</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {announcements.map(ann => (
+                                    <tr key={ann.id}>
+                                        <td className="px-6 py-4 text-sm font-medium">{ann.title}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <span className={`px-2 py-1 rounded text-xs ${
+                                                ann.type === 'critical' ? 'bg-red-100 text-red-800' :
+                                                ann.type === 'warning' ? 'bg-yellow-100 text-yellow-800' :
+                                                'bg-blue-100 text-blue-800'
+                                            }`}>
+                                                {ann.type}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">{ann.priority}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <span className={`px-2 py-1 rounded text-xs ${
+                                                ann.status === 'published' ? 'bg-green-100 text-green-800' :
+                                                'bg-gray-100 text-gray-800'
+                                            }`}>
+                                                {ann.status}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">{new Date(ann.created_at).toLocaleString()}</td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        // 系统配置
+        function ConfigPage() {
+            const [configs, setConfigs] = useState([]);
+            const [editingKey, setEditingKey] = useState(null);
+            const [editValue, setEditValue] = useState('');
+
+            const loadConfigs = () => {
+                axios.get(`${API_BASE}/config`)
+                    .then(res => setConfigs(res.data.configs))
+                    .catch(err => console.error('Failed to load configs:', err));
+            };
+
+            useEffect(() => { loadConfigs(); }, []);
+
+            const handleSave = async (configKey) => {
+                try {
+                    await axios.put(`${API_BASE}/config/${configKey}`, {
+                        config_value: editValue
+                    });
+                    setEditingKey(null);
+                    loadConfigs();
+                    alert('配置已更新');
+                } catch (err) {
+                    alert('更新失败');
+                }
+            };
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">系统配置</h2>
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">配置项</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">值</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">类型</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">描述</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {configs.map(config => (
+                                    <tr key={config.id}>
+                                        <td className="px-6 py-4 text-sm font-mono">{config.config_key}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            {editingKey === config.config_key ? (
+                                                <input
+                                                    type="text"
+                                                    value={editValue}
+                                                    onChange={e => setEditValue(e.target.value)}
+                                                    className="px-2 py-1 border rounded w-full"
+                                                />
+                                            ) : (
+                                                <code className="bg-gray-100 px-2 py-1 rounded">{config.config_value}</code>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">{config.config_type}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-600">{config.description || '-'}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            {editingKey === config.config_key ? (
+                                                <>
+                                                    <button
+                                                        onClick={() => handleSave(config.config_key)}
+                                                        className="text-green-600 hover:text-green-800 mr-3"
+                                                    >
+                                                        保存
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setEditingKey(null)}
+                                                        className="text-gray-600 hover:text-gray-800"
+                                                    >
+                                                        取消
+                                                    </button>
+                                                </>
+                                            ) : (
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingKey(config.config_key);
+                                                        setEditValue(config.config_value);
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-800"
+                                                >
+                                                    编辑
+                                                </button>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        }
+
+        // 操作日志
+        function LogsPage() {
+            const [logs, setLogs] = useState([]);
+            const [total, setTotal] = useState(0);
+            const [page, setPage] = useState(1);
+
+            const loadLogs = () => {
+                axios.get(`${API_BASE}/logs?page=${page}&page_size=50`)
+                    .then(res => {
+                        setLogs(res.data.logs);
+                        setTotal(res.data.total);
+                    })
+                    .catch(err => console.error('Failed to load logs:', err));
+            };
+
+            useEffect(() => { loadLogs(); }, [page]);
+
+            return (
+                <div>
+                    <h2 className="text-2xl font-bold mb-6">操作日志</h2>
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                        <table className="w-full">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">时间</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">管理员</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">操作</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">目标</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">详情</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
+                                {logs.map(log => (
+                                    <tr key={log.id}>
+                                        <td className="px-6 py-4 text-sm">{new Date(log.created_at).toLocaleString()}</td>
+                                        <td className="px-6 py-4 text-sm">{log.admin_id}</td>
+                                        <td className="px-6 py-4 text-sm">
+                                            <code className="bg-blue-100 px-2 py-1 rounded text-xs">{log.action}</code>
+                                        </td>
+                                        <td className="px-6 py-4 text-sm">
+                                            {log.target_type && (
+                                                <span className="text-gray-600">{log.target_type}:{log.target_id}</span>
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-gray-600 max-w-xs truncate">
+                                            {log.details || '-'}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <div className="mt-4 flex justify-between items-center">
+                        <div className="text-sm text-gray-500">共 {total} 条记录</div>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                className="px-3 py-1 border rounded disabled:opacity-50"
+                            >
+                                上一页
+                            </button>
+                            <span className="px-3 py-1">第 {page} 页</span>
+                            <button
+                                onClick={() => setPage(p => p + 1)}
+                                disabled={page * 50 >= total}
+                                className="px-3 py-1 border rounded disabled:opacity-50"
+                            >
+                                下一页
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // 主应用
+        function App() {
+            const [user, setUser] = useState(null);
+            const [activeMenu, setActiveMenu] = useState('dashboard');
+
+            useEffect(() => {
+                // 检查登录状态
+                if (authToken) {
+                    axios.get(`${API_BASE}/auth/me`)
+                        .then(res => setUser(res.data))
+                        .catch(() => {
+                            authToken = '';
+                            localStorage.removeItem('admin_token');
+                        });
+                }
+            }, []);
+
+            const handleLogout = () => {
+                axios.post(`${API_BASE}/auth/logout`).finally(() => {
+                    authToken = '';
+                    localStorage.removeItem('admin_token');
+                    setUser(null);
+                });
+            };
+
+            if (!user) {
+                return <LoginPage onLogin={setUser} />;
+            }
+
+            const renderContent = () => {
+                switch (activeMenu) {
+                    case 'dashboard': return <Dashboard />;
+                    case 'users': return <UsersPage />;
+                    case 'api-keys': return <ApiKeysPage />;
+                    case 'intents': return <IntentsPage />;
+                    case 'announcements': return <AnnouncementsPage />;
+                    case 'config': return <ConfigPage />;
+                    case 'logs': return <LogsPage />;
+                    default: return <Dashboard />;
+                }
+            };
+
+            return (
+                <div className="flex h-screen bg-gray-100">
+                    <Sidebar
+                        activeMenu={activeMenu}
+                        onMenuChange={setActiveMenu}
+                        onLogout={handleLogout}
+                    />
+                    <div className="content overflow-auto p-8">
+                        {renderContent()}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html>

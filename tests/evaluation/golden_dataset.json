@@ -1,0 +1,323 @@
+{
+  "test_cases": [
+    {
+      "id": "intent_001",
+      "input": "帮我查一下余额",
+      "expected": {
+        "intent": "balance_query",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_002",
+      "input": "给张三转500块钱",
+      "expected": {
+        "intent": "transfer",
+        "slots": {
+          "amount": 500,
+          "payee_raw": "张三"
+        }
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_003",
+      "input": "分析一下我的账单",
+      "expected": {
+        "intent": "bill_analysis",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_004",
+      "input": "我想买稳健90天的理财产品",
+      "expected": {
+        "intent": "investment_purchase",
+        "slots": {
+          "product": "稳健90天"
+        }
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_005",
+      "input": "取消腾讯视频的订阅",
+      "expected": {
+        "intent": "subscription_cancel",
+        "slots": {
+          "merchant": "腾讯视频"
+        }
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_006",
+      "input": "我的卡丢了，帮我挂失",
+      "expected": {
+        "intent": "report_loss",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_007",
+      "input": "明天给李四转1000元",
+      "expected": {
+        "intent": "scheduled_transfer",
+        "slots": {
+          "amount": 1000,
+          "payee_raw": "李四",
+          "schedule": {"execute_at": "tomorrow", "cycle": "once"}
+        }
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_008",
+      "input": "推荐一些理财产品",
+      "expected": {
+        "intent": "investment_query",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_009",
+      "input": "帮我做个风险测评",
+      "expected": {
+        "intent": "risk_assessment",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_010",
+      "input": "查一下我的订阅",
+      "expected": {
+        "intent": "subscription_query",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_011",
+      "input": "给老婆转2000元买菜",
+      "expected": {
+        "intent": "transfer",
+        "slots": {
+          "amount": 2000,
+          "payee_raw": "老婆",
+          "memo": "买菜"
+        }
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_012",
+      "input": "赎回我买的基金",
+      "expected": {
+        "intent": "investment_redeem",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_013",
+      "input": "查一下我的持仓",
+      "expected": {
+        "intent": "my_investments",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_014",
+      "input": "AA制收款，总共300元，4个人",
+      "expected": {
+        "intent": "aa_split",
+        "slots": {
+          "amount": 300,
+          "people": 4
+        }
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_015",
+      "input": "帮我安排一下生日惊喜",
+      "expected": {
+        "intent": "birthday_plan",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_016",
+      "input": "查看年度账单报告",
+      "expected": {
+        "intent": "bill_yearly",
+        "slots": {
+          "period": "year"
+        }
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_017",
+      "input": "算了，取消刚才的操作",
+      "expected": {
+        "intent": "abort",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_018",
+      "input": "转人工客服",
+      "expected": {
+        "intent": "human_takeover",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_019",
+      "input": "你能做什么",
+      "expected": {
+        "intent": "help",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "intent_020",
+      "input": "查一下定时转账",
+      "expected": {
+        "intent": "scheduled_query",
+        "slots": {}
+      },
+      "category": "intent_classification"
+    },
+    {
+      "id": "slot_001",
+      "input": "转500元",
+      "expected": {
+        "intent": "transfer",
+        "slots": {
+          "amount": 500
+        }
+      },
+      "category": "slot_extraction"
+    },
+    {
+      "id": "slot_002",
+      "input": "给13800138000转账",
+      "expected": {
+        "intent": "transfer",
+        "slots": {
+          "phone": "13800138000"
+        }
+      },
+      "category": "slot_extraction"
+    },
+    {
+      "id": "slot_003",
+      "input": "转账备注：房租",
+      "expected": {
+        "intent": "transfer",
+        "slots": {
+          "memo": "房租"
+        }
+      },
+      "category": "slot_extraction"
+    },
+    {
+      "id": "slot_004",
+      "input": "预算1000元",
+      "expected": {
+        "intent": "birthday_plan",
+        "slots": {
+          "budget": 1000
+        }
+      },
+      "category": "slot_extraction"
+    },
+    {
+      "id": "slot_005",
+      "input": "取消网易云音乐",
+      "expected": {
+        "intent": "subscription_cancel",
+        "slots": {
+          "merchant": "网易云音乐"
+        }
+      },
+      "category": "slot_extraction"
+    },
+    {
+      "id": "slot_006",
+      "input": "申购稳健90天",
+      "expected": {
+        "intent": "investment_purchase",
+        "slots": {
+          "product": "稳健90天"
+        }
+      },
+      "category": "slot_extraction"
+    },
+    {
+      "id": "slot_007",
+      "input": "我选择稳健",
+      "expected": {
+        "intent": "risk_assessment",
+        "slots": {
+          "risk_answer": "稳健"
+        }
+      },
+      "category": "slot_extraction"
+    },
+    {
+      "id": "slot_008",
+      "input": "5个人AA",
+      "expected": {
+        "intent": "aa_split",
+        "slots": {
+          "people": 5
+        }
+      },
+      "category": "slot_extraction"
+    },
+    {
+      "id": "slot_009",
+      "input": "明天下午3点执行",
+      "expected": {
+        "intent": "scheduled_transfer",
+        "slots": {
+          "schedule": {"execute_at": "tomorrow_15:00", "cycle": "once"}
+        }
+      },
+      "category": "slot_extraction"
+    },
+    {
+      "id": "slot_010",
+      "input": "每周五转账",
+      "expected": {
+        "intent": "scheduled_transfer",
+        "slots": {
+          "schedule": {"cycle": "weekly", "day_of_week": "friday"}
+        }
+      },
+      "category": "slot_extraction"
+    }
+  ],
+  "metadata": {
+    "version": "1.0",
+    "created_at": "2026-09-25",
+    "total_cases": 30,
+    "categories": {
+      "intent_classification": 20,
+      "slot_extraction": 10
+    }
+  }
+}

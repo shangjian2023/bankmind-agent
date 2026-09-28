@@ -8,6 +8,7 @@ from app.agent import intent as intent_mod
 from app.agent import planner
 from app.agent import slots as slots_mod
 from app.agent.guard import check_injection
+from app.data import database
 from app.data import repositories as repo
 from app.models import ChatOut
 from app.security import audit, circuit, mfa, permissions
@@ -189,6 +190,20 @@ def _describe(intent, slots):
         return f"创建定时转账：向 {payee} 每次 {slots.get('amount', 0):.2f} 元，{s.get('desc', '指定时间')} 执行"
     if intent == "aa_split":
         return f"创建 AA 收款：总额 {slots.get('amount', 0):.2f} 元 ÷ {slots.get('people', '?')} 人"
+    if intent == "card_query":
+        return "查询名下卡片"
+    if intent == "card_apply":
+        return f"申请新卡（类型：{slots.get('card_type', 'debit')}）"
+    if intent == "card_activate":
+        return f"激活卡片（ID：{slots.get('card_id', '?')}）"
+    if intent == "card_freeze":
+        return f"冻结卡片（ID：{slots.get('card_id', '?')}）"
+    if intent == "card_unfreeze":
+        return f"解冻卡片（ID：{slots.get('card_id', '?')}）"
+    if intent == "card_limit":
+        return f"修改卡片限额（ID：{slots.get('card_id', '?')}）"
+    if intent == "card_deactivate":
+        return f"注销卡片（ID：{slots.get('card_id', '?')}）"
     return json.dumps(slots, ensure_ascii=False)
 
 
@@ -197,10 +212,11 @@ def _run(trace_id, user_id, it, slots, dag, level):
     order = planner.topo_sort(dag)
     nodes = {n["id"]: n for n in dag}
     try:
-        for nid in order:
-            res = REGISTRY[nodes[nid]["tool"]](ctx)
-            ctx["results"][nid] = res
-            audit.log(trace_id, user_id, f"tool:{nid}", intent=it, level=level, detail={"output": res})
+        with database.transaction():
+            for nid in order:
+                res = REGISTRY[nodes[nid]["tool"]](ctx)
+                ctx["results"][nid] = res
+                audit.log(trace_id, user_id, f"tool:{nid}", intent=it, level=level, detail={"output": res})
     except ToolError as e:
         circuit.record_failure(user_id)
         audit.log(trace_id, user_id, "tool_error", intent=it, level=level, detail={"error": str(e)})
@@ -271,6 +287,21 @@ def _build_reply(it, r):
         return r["list_scheduled"]["text"]
     if it == "aa_split":
         return r["split_aa"]["text"]
+    # 卡片管理
+    if it == "card_query":
+        return r["list_cards"]["text"]
+    if it == "card_apply":
+        return r["apply_card"]["text"]
+    if it == "card_activate":
+        return r["activate_card"]["text"]
+    if it == "card_freeze":
+        return r["freeze_card"]["text"]
+    if it == "card_unfreeze":
+        return r["unfreeze_card"]["text"]
+    if it == "card_limit":
+        return r["update_card_limit"]["text"]
+    if it == "card_deactivate":
+        return r["deactivate_card"]["text"]
     return "操作完成。"
 
 

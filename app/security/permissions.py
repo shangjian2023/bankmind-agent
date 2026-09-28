@@ -28,6 +28,14 @@ STATIC_LEVELS = {
     "aa_split": YELLOW,
     "investment_purchase": RED,
     "investment_redeem": RED,
+    # 卡片管理
+    "card_query": GREEN,
+    "card_apply": YELLOW,
+    "card_activate": YELLOW,
+    "card_freeze": RED,
+    "card_unfreeze": YELLOW,
+    "card_limit": YELLOW,
+    "card_deactivate": RED,
 }
 
 

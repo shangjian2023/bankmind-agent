@@ -1,0 +1,107 @@
+[
+  {
+    "user_id": "u001",
+    "merchant": "腾讯视频VIP",
+    "amount": 30,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 26
+  },
+  {
+    "user_id": "u001",
+    "merchant": "爱奇艺会员",
+    "amount": 25,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 23
+  },
+  {
+    "user_id": "u001",
+    "merchant": "优酷会员",
+    "amount": 18,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 3
+  },
+  {
+    "user_id": "u001",
+    "merchant": "网易云音乐",
+    "amount": 15,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 1
+  },
+  {
+    "user_id": "u001",
+    "merchant": "QQ音乐绿钻",
+    "amount": 15,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 10
+  },
+  {
+    "user_id": "u001",
+    "merchant": "iCloud 50G",
+    "amount": 6,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 5
+  },
+  {
+    "user_id": "u001",
+    "merchant": "百度网盘超级会员",
+    "amount": 25,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 28
+  },
+  {
+    "user_id": "u001",
+    "merchant": "WPS会员",
+    "amount": 15,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 16
+  },
+  {
+    "user_id": "u001",
+    "merchant": "超级健身房",
+    "amount": 299,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 25
+  },
+  {
+    "user_id": "u001",
+    "merchant": "京东PLUS",
+    "amount": 149,
+    "cycle": "yearly",
+    "next_charge_days_ahead": 333
+  },
+  {
+    "user_id": "u001",
+    "merchant": "淘宝88VIP",
+    "amount": 88,
+    "cycle": "yearly",
+    "next_charge_days_ahead": 272
+  },
+  {
+    "user_id": "u001",
+    "merchant": "Amazon Prime",
+    "amount": 99,
+    "cycle": "yearly",
+    "next_charge_days_ahead": 163
+  },
+  {
+    "user_id": "u001",
+    "merchant": "Spotify",
+    "amount": 10,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 20
+  },
+  {
+    "user_id": "u001",
+    "merchant": "Notion Plus",
+    "amount": 8,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 7
+  },
+  {
+    "user_id": "u001",
+    "merchant": "ChatGPT Plus",
+    "amount": 140,
+    "cycle": "monthly",
+    "next_charge_days_ahead": 12
+  }
+]

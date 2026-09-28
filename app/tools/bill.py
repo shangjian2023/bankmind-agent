@@ -17,7 +17,7 @@ def _stats(amounts):
 @tool("analyze_bills")
 def analyze_bills(ctx):
     yearly = ctx["slots"].get("period") == "year"
-    window = 365 if yearly else 90
+    window = config.BILL_YEARLY_WINDOW_DAYS if yearly else config.BILL_ANALYSIS_WINDOW_DAYS
     since = (date.today() - timedelta(days=window)).isoformat()
     rows = repo.transactions_since(ctx["user_id"], since)
     debits = [r for r in rows if r["amount"] < 0]

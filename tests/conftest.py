@@ -10,11 +10,13 @@ import pytest
 def fresh_env():
     from app.data import database
     from app.security import circuit
-    from app.agent import orchestrator
+    from app.agents.coordinator import SESSIONS
+    from app.middleware.rate_limit import limiter
 
     database.reset_and_seed()
     circuit._state.clear()
-    orchestrator.SESSIONS.clear()
+    SESSIONS.clear()
+    limiter.requests.clear()  # 重置限流器
     yield
 
 

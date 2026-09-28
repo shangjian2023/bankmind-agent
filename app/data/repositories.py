@@ -187,14 +187,14 @@ def insert_audit(trace_id, user_id, stage, intent=None, level=None, detail=None)
         )
 
 
-def query_audit(user_id, limit=100, trace_id=None):
+def query_audit(user_id, limit=100, trace_id=None, offset=0):
     q = "SELECT * FROM audit_logs WHERE user_id=?"
     params = [user_id]
     if trace_id:
         q += " AND trace_id=?"
         params.append(trace_id)
-    q += " ORDER BY id DESC LIMIT ?"
-    params.append(limit)
+    q += " ORDER BY id DESC LIMIT ? OFFSET ?"
+    params.extend([limit, offset])
     with connect() as conn:
         return [dict(r) for r in conn.execute(q, params).fetchall()]
 
@@ -322,3 +322,75 @@ def latest_pending(user_id):
             (user_id,),
         ).fetchone()
     return dict(row) if row else None
+
+
+# ---------- cards ----------
+
+def list_cards(user_id):
+    with connect() as conn:
+        return [
+            dict(r)
+            for r in conn.execute(
+                "SELECT * FROM cards WHERE user_id=? ORDER BY id", (user_id,)
+            ).fetchall()
+        ]
+
+
+def get_card_by_no(user_id, card_no):
+    with connect() as conn:
+        row = conn.execute(
+            "SELECT * FROM cards WHERE user_id=? AND card_no=?", (user_id, card_no)
+        ).fetchone()
+    return dict(row) if row else None
+
+
+def get_card_by_id(card_id):
+    with connect() as conn:
+        row = conn.execute("SELECT * FROM cards WHERE id=?", (card_id,)).fetchone()
+    return dict(row) if row else None
+
+
+def insert_card(user_id, card_no, card_type, card_brand, expires_at, daily_limit=5000, monthly_limit=50000):
+    with connect() as conn:
+        cur = conn.execute(
+            "INSERT INTO cards(user_id,card_no,card_type,card_brand,status,daily_limit,monthly_limit,frozen,expires_at,created_at)"
+            " VALUES(?,?,?,'UnionPay','inactive',?,?,0,?,?)",
+            (user_id, card_no, card_type, daily_limit, monthly_limit, expires_at, now_iso()),
+        )
+        return cur.lastrowid
+
+
+def activate_card(card_id):
+    with connect() as conn:
+        conn.execute("UPDATE cards SET status='active' WHERE id=?", (card_id,))
+
+
+def freeze_card(card_id):
+    with connect() as conn:
+        conn.execute("UPDATE cards SET frozen=1 WHERE id=?", (card_id,))
+
+
+def unfreeze_card(card_id):
+    with connect() as conn:
+        conn.execute("UPDATE cards SET frozen=0 WHERE id=?", (card_id,))
+
+
+def update_card_limits(card_id, daily_limit=None, monthly_limit=None):
+    sets, params = [], []
+    if daily_limit is not None:
+        sets.append("daily_limit=?")
+        params.append(daily_limit)
+    if monthly_limit is not None:
+        sets.append("monthly_limit=?")
+        params.append(monthly_limit)
+    if not sets:
+        return
+    params.append(card_id)
+    with connect() as conn:
+        conn.execute(f"UPDATE cards SET {', '.join(sets)} WHERE id=?", params)
+
+
+def deactivate_card(card_id):
+    with connect() as conn:
+        conn.execute("UPDATE cards SET status='deactivated' WHERE id=?", (card_id,))
+

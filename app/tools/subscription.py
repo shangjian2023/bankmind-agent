@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+from app import config
 from app.data import repositories as repo
 from app.tools.registry import tool, ToolError
 
@@ -8,7 +9,7 @@ from app.tools.registry import tool, ToolError
 def list_subscriptions(ctx):
     rows = repo.active_subscriptions(ctx["user_id"])
     today = date.today()
-    soon = today + timedelta(days=7)
+    soon = today + timedelta(days=config.BILL_SUBSCRIPTION_SOON_DAYS)
     out = []
     for r in rows:
         nc = date.fromisoformat(r["next_charge"])

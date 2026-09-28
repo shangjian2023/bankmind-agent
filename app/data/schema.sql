@@ -4,7 +4,14 @@ CREATE TABLE IF NOT EXISTS users(
   phone TEXT,
   spouse_name TEXT,
   spouse_birthday TEXT,
-  risk_level TEXT
+  risk_level TEXT,
+  role TEXT DEFAULT 'user',
+  email TEXT,
+  password_hash TEXT,
+  status TEXT DEFAULT 'active',
+  created_at TEXT,
+  updated_at TEXT,
+  last_login TEXT
 );
 CREATE TABLE IF NOT EXISTS accounts(
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -109,3 +116,32 @@ CREATE TABLE IF NOT EXISTS aa_collections(
   status TEXT NOT NULL DEFAULT 'collecting',
   created_at TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS cards(
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id TEXT NOT NULL,
+  card_no TEXT NOT NULL UNIQUE,
+  card_type TEXT NOT NULL DEFAULT 'debit',
+  card_brand TEXT NOT NULL DEFAULT 'UnionPay',
+  status TEXT NOT NULL DEFAULT 'inactive',
+  daily_limit REAL NOT NULL DEFAULT 5000,
+  monthly_limit REAL NOT NULL DEFAULT 50000,
+  frozen INTEGER NOT NULL DEFAULT 0,
+  expires_at TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+
+-- Performance indexes for common queries
+CREATE INDEX IF NOT EXISTS idx_transactions_user_ts ON transactions(user_id, ts);
+CREATE INDEX IF NOT EXISTS idx_transactions_category ON transactions(category);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_trace ON audit_logs(user_id, trace_id);
+CREATE INDEX IF NOT EXISTS idx_scheduled_status_execute ON scheduled_transfers(status, execute_at);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_user_status ON subscriptions(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_pending_user_status ON pending_actions(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_investments_user_status ON investments(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_contacts_user_phone ON contacts(user_id, phone);
+CREATE INDEX IF NOT EXISTS idx_contacts_user_name ON contacts(user_id, name);
+CREATE INDEX IF NOT EXISTS idx_contacts_user_relation ON contacts(user_id, relation);
+CREATE INDEX IF NOT EXISTS idx_products_risk ON products(risk_level);
+CREATE INDEX IF NOT EXISTS idx_accounts_user ON accounts(user_id);
+CREATE INDEX IF NOT EXISTS idx_cards_user ON cards(user_id);
+CREATE INDEX IF NOT EXISTS idx_cards_status ON cards(status);
