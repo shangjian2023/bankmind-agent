@@ -1,7 +1,7 @@
 """卡片管理功能测试"""
 import pytest
 from app.data import database, repositories as repo
-from app.agent.orchestrator import handle_message, confirm_action, verify_mfa
+from app.agent_graph.runner import handle_message, confirm_action, verify_mfa
 from app.security import permissions
 
 

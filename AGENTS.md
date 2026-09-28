@@ -22,7 +22,7 @@
 
 ## 3. 技术栈
 - 后端：Python FastAPI
-- Agent 编排：自研 DAG 编排优先，必要时 LangGraph
+- Agent 编排：**LangGraph StateGraph（默认引擎）**，interrupt 人工确认/MFA + InMemorySaver 断点；`AGENT_ENGINE=legacy` 可切回手写多 Agent 协调器作对照
 - LLM：OpenAI 兼容 function calling；没有 Key 时用 MockLLM + 规则引擎保证可运行
 - 数据库：SQLite（MVP），可升级 Postgres
 - 前端：简单 Web UI 优先，后续可换 React/Next.js
@@ -78,3 +78,5 @@ uvicorn app.main:app --reload
 MVP 已完成：五场景端到端（转账黄/红+日累计、账单分析、订阅管理、挂失、生日联动）、权限三级、注入防御、模拟 MFA、全链路审计、熔断、沙箱、MockLLM、Web UI、29 个 pytest 用例全绿、Docker 就绪。架构分层解耦（agent/security/tools/data，SQL 全部集中在 app/data/repositories.py）。下一步见 docs/PLAN.md。
 
 第二轮（2026-09-25 晚）：对照赛题原文补齐——理财操作全链路（测评/推荐/申购/赎回，红 MFA）、定时转账（后台调度器，超日限自动拦截）、AA 收款、年度账单、中断（"算了"）/人工接管（"转人工"）、生日联动对齐赛题（锁 1000 元、前 2 天订购）。六大场景全覆盖，45 用例全绿。赛题原文已存 docs/赛题解析.md 并附实现对照表。
+
+第三轮（2026-09-28）：管理台（用户/公告/API Key/意图/日志，admin.html）、意图评测（Banking77 + golden dataset + benchmark）、知识图谱、PII 脱敏、日志/限流/安全头中间件、卡片管理七操作。**架构切换到成熟框架：编排核心迁至 LangGraph**（`app/agent_graph/`：guard→intent→planner→slots→preflight→permission→HITL(interrupt)→executor→reviewer，thread_id=trace_id，pending 行仍入库），回复/审核组件沉淀到 `app/agent/replies.py`、`app/agent/reviewer.py`；legacy orchestrator/coordinator 保留作答辩对照。67 用例全绿（含 AGENT_ENGINE=legacy 回归）。

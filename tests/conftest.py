@@ -12,11 +12,13 @@ def fresh_env():
     from app.security import circuit
     from app.agents.coordinator import SESSIONS
     from app.middleware.rate_limit import limiter
+    from app.agent_graph import runner as langgraph_runner
 
     database.reset_and_seed()
     circuit._state.clear()
     SESSIONS.clear()
     limiter.requests.clear()  # 重置限流器
+    langgraph_runner.reset_runtime()  # 清空 LangGraph 会话与暂停线程
     yield
 
 

@@ -94,6 +94,9 @@ RATE_LIMIT_MFA_MAX = int(get_config("rate_limit_mfa_max", "10"))
 INTENT_FALLBACK_ENABLED = get_config_typed("intent_fallback_enabled", True)
 INTENT_CONFIDENCE_THRESHOLD = float(get_config("intent_confidence_threshold", "0.7"))
 
+# 编排引擎：langgraph（默认，基于 LangGraph StateGraph + interrupt HITL）| legacy（手写多 Agent 协调器）
+AGENT_ENGINE = os.environ.get("AGENT_ENGINE", "langgraph")
+
 # 开发/调试
 DEV_SHOW_MFA_CODE = os.environ.get("DEV_SHOW_MFA_CODE", "1") == "1"
 

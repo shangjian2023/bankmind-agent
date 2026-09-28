@@ -6,7 +6,11 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 
 from app import config
-from app.agents import coordinator as coordinator_module
+
+if config.AGENT_ENGINE == "legacy":
+    from app.agents import coordinator as engine
+else:
+    from app.agent_graph import runner as engine
 from app.data import repositories as repo
 from app.data import database
 from app.models import ChatIn, ChatOut, ConfirmIn, MFAIn
@@ -56,17 +60,17 @@ def users():
 def chat(inp: ChatIn):
     if not repo.get_user(inp.user_id):
         raise HTTPException(404, f"用户 {inp.user_id} 不存在")
-    return coordinator_module.handle_message(inp.user_id, inp.message)
+    return engine.handle_message(inp.user_id, inp.message)
 
 
 @router.post("/confirm", response_model=ChatOut)
 def confirm(inp: ConfirmIn):
-    return coordinator_module.confirm_action(inp.action_id, inp.approve)
+    return engine.confirm_action(inp.action_id, inp.approve)
 
 
 @router.post("/mfa/verify", response_model=ChatOut)
 def verify(inp: MFAIn):
-    return coordinator_module.verify_mfa(inp.action_id, inp.code)
+    return engine.verify_mfa(inp.action_id, inp.code)
 
 
 @router.get("/audit")
