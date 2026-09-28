@@ -29,6 +29,7 @@ export interface ChatMessage {
   text: string
   status?: ChatResponse['status']
   actionId?: string | null
+  mfaHint?: string | null
   intent?: string
   billData?: any
   traceId?: string | null

@@ -47,7 +47,7 @@ import { ThoughtPanel } from './components/ThoughtPanel'
 import { Drawer } from 'antd'
 
 const GREETING =
-  '您好，我是 BankMind 银行智能助手（模拟环境，无真实资金）。我可以：查询余额与账单、智能转账（含定时与 AA）、理财推荐与申购、订阅管理、卡片挂失、生日关怀联动。\n试试左侧场景剧本，或直接输入指令。'
+  '您好，我是 BankMind 银行智能助手（模拟环境，无真实资金）。我可以：查询余额与账单、智能转账（含定时与 AA）、理财推荐与申购、订阅管理、卡片挂失、生日关怀联动。\n点击左侧场景剧本可快速填入指令（可编辑后发送），也可直接输入。'
 
 const SCENE_PROMPTS: Record<string, string> = {
   s1: '查一下我的余额',
@@ -121,6 +121,19 @@ export default function App() {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: 'smooth' })
   }, [messages])
 
+  // 内容增高（打字机动画/账单图表/确认卡片）时保持贴底；用户主动上翻阅读历史则不打扰
+  useEffect(() => {
+    const el = scrollRef.current
+    const inner = el?.firstElementChild as HTMLElement | null
+    if (!el || !inner) return
+    const ro = new ResizeObserver(() => {
+      const distance = el.scrollHeight - el.scrollTop - el.clientHeight
+      if (distance < 80) el.scrollTop = el.scrollHeight
+    })
+    ro.observe(inner)
+    return () => ro.disconnect()
+  }, [])
+
   useEffect(() => {
     if (!auditOpen) return
     const t = setInterval(() => {
@@ -159,6 +172,7 @@ export default function App() {
         text: res.reply,
         status: res.status,
         actionId: res.action_id,
+        mfaHint: res.mfa_hint,
         billData,
         traceId: res.trace_id,
       },
@@ -197,6 +211,8 @@ export default function App() {
       const res = await api.confirm(msg.actionId, approve)
       setMessages((m) => m.map((x) => (x.key === msg.key ? { ...x, settled: true } : x)))
       appendBot(res)
+    } catch {
+      message.error('请求失败，请检查后端服务是否已启动')
     } finally {
       setBusyAction(false)
     }
@@ -212,8 +228,14 @@ export default function App() {
         setMfaKey((k) => k + 1)
       } else {
         setMfa((s) => ({ ...s, open: false }))
+        // 终态：结算该操作的待验证气泡，收回"重开验证码输入"入口
+        setMessages((ms) =>
+          ms.map((x) => (x.actionId === mfa.actionId && x.status === 'need_mfa' ? { ...x, settled: true } : x)),
+        )
         appendBot(res)
       }
+    } catch {
+      message.error('请求失败，请检查后端服务是否已启动')
     } finally {
       setMfaBusy(false)
     }
@@ -222,7 +244,7 @@ export default function App() {
   const tourSteps: TourProps['steps'] = [
     {
       title: '场景剧本',
-      description: '覆盖赛题六大场景的演示指令，点击即可发送（含安全攻击演示）。',
+      description: '覆盖赛题六大场景的演示指令，点击填入输入框（可编辑后发送，含安全攻击演示）。',
       target: () => siderRef.current!,
     },
     {
@@ -260,7 +282,12 @@ export default function App() {
           <Dropdown
             menu={{
               items: users.map((u) => ({ key: u.id, label: `${u.name}（${u.id}）` })),
-              onClick: ({ key }) => setUser(key),
+              onClick: ({ key }) => {
+              if (key === user) return
+              setUser(key)
+              setMessages([{ key: nextKey(), role: 'bot', text: GREETING }])
+              setBalance(null)
+            },
             }}
           >
             <Space style={{ cursor: 'pointer' }}>
@@ -272,7 +299,12 @@ export default function App() {
         <Menu
           mode="inline"
           style={{ background: 'transparent', border: 'none' }}
-          onClick={({ key }) => send(SCENE_PROMPTS[key] ?? '')}
+          onClick={({ key }) => {
+            const p = SCENE_PROMPTS[key]
+            if (!p) return
+            setInput(p)
+            senderRef.current?.querySelector('textarea')?.focus()
+          }}
           items={[
             {
               key: 'g1',
@@ -398,6 +430,19 @@ export default function App() {
                           <div>
                             {m.status === 'need_confirm' && !m.settled && (
                               <ConfirmCard busy={busyAction} onDecision={(a) => decide(m, a)} />
+                            )}
+                            {m.status === 'need_mfa' && !m.settled && m.actionId && (
+                              <Button
+                                size="small"
+                                danger
+                                style={{ marginTop: 4 }}
+                                onClick={() => {
+                                  setMfa({ open: true, actionId: m.actionId!, hint: m.mfaHint ?? null })
+                                  setMfaKey((k) => k + 1)
+                                }}
+                              >
+                                输入短信验证码
+                              </Button>
                             )}
                             {m.billData?.category_totals && <BillCharts data={m.billData} />}
                           </div>
