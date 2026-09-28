@@ -79,4 +79,4 @@ MVP 已完成：五场景端到端（转账黄/红+日累计、账单分析、�
 
 第二轮（2026-09-25 晚）：对照赛题原文补齐——理财操作全链路（测评/推荐/申购/赎回，红 MFA）、定时转账（后台调度器，超日限自动拦截）、AA 收款、年度账单、中断（"算了"）/人工接管（"转人工"）、生日联动对齐赛题（锁 1000 元、前 2 天订购）。六大场景全覆盖，45 用例全绿。赛题原文已存 docs/赛题解析.md 并附实现对照表。
 
-第三轮（2026-09-28）：管理台（用户/公告/API Key/意图/日志，admin.html）、意图评测（Banking77 + golden dataset + benchmark）、知识图谱、PII 脱敏、日志/限流/安全头中间件、卡片管理七操作。**架构切换到成熟框架：编排核心迁至 LangGraph**（`app/agent_graph/`：guard→intent→planner→slots→preflight→permission→HITL(interrupt)→executor→reviewer，thread_id=trace_id，pending 行仍入库），回复/审核组件沉淀到 `app/agent/replies.py`、`app/agent/reviewer.py`；legacy orchestrator/coordinator 保留作答辩对照。67 用例全绿（含 AGENT_ENGINE=legacy 回归）。
+第三轮（2026-09-28）：管理台（用户/公告/API Key/意图/日志，admin.html）、意图评测（Banking77 + golden dataset + benchmark）、知识图谱、PII 脱敏、日志/限流/安全头中间件、卡片管理七操作。**架构切换到成熟框架：编排核心迁至 LangGraph**（`app/agent_graph/`：guard→intent→planner→slots→preflight→permission→HITL(interrupt)→executor→reviewer，thread_id=trace_id，pending 行仍入库），回复/审核组件沉淀到 `app/agent/replies.py`、`app/agent/reviewer.py`；legacy orchestrator/coordinator 保留作答辩对照。知识图谱换 **NetworkX**（MultiDiGraph，API 与旧实现一致）、调度器换 **APScheduler**（AsyncIOScheduler 30s，tick() 不变）。72 用例全绿（含 AGENT_ENGINE=legacy 回归）。

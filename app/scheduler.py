@@ -1,9 +1,14 @@
-"""定时转账调度器：到期执行、余额不足失败、超日累计安全拦截（blocked，需手动 MFA 转账）。"""
+"""定时转账调度器：APScheduler 驱动；到期执行、余额不足失败、超日累计安全拦截（blocked，需手动 MFA 转账）。
 
-import asyncio
+tick() 保持纯函数（手动触发端点 /api/admin/scheduler/tick 与测试直接调用）；
+start()/stop() 由 main.lifespan 调用，AsyncIOScheduler 每 30 秒执行一次 tick。
+"""
+
 import logging
 import uuid
 from datetime import datetime, timedelta
+
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app import config
 from app.data import database
@@ -54,11 +59,38 @@ def tick():
     return executed
 
 
-async def loop():
-    logger.info("调度器启动")
-    while True:
-        await asyncio.sleep(30)
-        try:
-            tick()
-        except Exception as e:
-            logger.error(f"调度器异常: {e}", exc_info=True)
+_scheduler: AsyncIOScheduler | None = None
+
+
+def create_scheduler() -> AsyncIOScheduler:
+    """构建调度器：30s 间隔执行 tick；单实例防堆积，错过的触发合并为一次。"""
+    sch = AsyncIOScheduler(timezone="Asia/Shanghai")
+    sch.add_job(
+        tick,
+        "interval",
+        seconds=30,
+        id="scheduled_transfer_tick",
+        max_instances=1,
+        coalesce=True,
+    )
+    return sch
+
+
+def start():
+    """启动调度器（需在运行中的事件循环内调用，如 FastAPI lifespan）。"""
+    global _scheduler
+    _scheduler = create_scheduler()
+    _scheduler.start()
+    logger.info("调度器启动（APScheduler，每 30 秒）")
+
+
+def stop():
+    global _scheduler
+    if _scheduler is not None:
+        _scheduler.shutdown(wait=False)
+        _scheduler = None
+        logger.info("调度器停止")
+
+
+def is_running() -> bool:
+    return _scheduler is not None and _scheduler.running

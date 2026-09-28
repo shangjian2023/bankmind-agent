@@ -35,8 +35,10 @@ def health():
         checks["db"] = f"error: {str(e)}"
         status = "degraded"
 
-    # 调度器检查
-    checks["scheduler"] = "running"  # 如果 lifespan 正常则运行中
+    # 调度器检查（APScheduler 实际状态）
+    from app import scheduler as scheduler_mod
+
+    checks["scheduler"] = "running" if scheduler_mod.is_running() else "stopped"
 
     # 基本信息
     uptime = int(time.time() - _start_time)

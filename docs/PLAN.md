@@ -10,7 +10,8 @@
   - 踩坑记录：① 任务执行内多次 interrupt 会索引错位 → 改"单次中断 + 自环重试"；② 节点间短路必须走条件边（无条件边会漏 stop 标志）
   - `AGENT_ENGINE=legacy` 切回手写多 Agent 协调器（答辩对照用），两引擎 67 用例均绿
 - [ ] D3：答辩 PPT 大纲 + 5 分钟演示视频脚本 + 200 字简介（含创作理念+AI 技术）
-- [ ] 可选：知识图谱换 NetworkX、调度器换 APScheduler（继续"成熟框架"路线）、密码修改/虚拟卡申请
+- [x] 知识图谱换 **NetworkX**（`app/knowledge/graph.py`，API 不变+新增测试）、调度器换 **APScheduler**（30s interval，`tick()` 纯函数保留，`/health` 上报真实调度器状态）；真实服务冒烟通过
+- [ ] 可选：密码修改/虚拟卡申请（红色面补充）
 
 ## 历史轮次归档
 

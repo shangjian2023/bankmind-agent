@@ -1,6 +1,5 @@
 """应用入口：FastAPI 生命周期、中间件注册、静态文件挂载。"""
 
-import asyncio
 import logging
 import os
 import time
@@ -32,9 +31,9 @@ async def lifespan(app):
     if not database.is_seeded():
         database.seed()
         logger.info("数据库播种完成")
-    task = asyncio.create_task(scheduler.loop())
+    scheduler.start()
     yield
-    task.cancel()
+    scheduler.stop()
     logger.info("应用关闭")
 
 

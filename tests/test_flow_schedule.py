@@ -47,3 +47,13 @@ def test_scheduler_recurring_reschedules(client):
     assert t["status"] == "scheduled", "循环任务执行后应重新排期"
     assert t["execute_at"] > past
     assert chat(client, "查一下我的余额")["reply"].count("15700.50") == 1
+
+
+def test_scheduler_built_on_apscheduler():
+    """调度器基于 APScheduler：可构建、注册了周期任务、未启动时状态正确。"""
+    from app import scheduler
+
+    sch = scheduler.create_scheduler()
+    jobs = sch.get_jobs()
+    assert any(j.id == "scheduled_transfer_tick" for j in jobs)
+    assert not scheduler.is_running()
